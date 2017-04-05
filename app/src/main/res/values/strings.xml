@@ -5,4 +5,9 @@
     <string name="title_activity_client">ClientActivity</string>
     <string name="title_activity_connected">ConnectedActivity</string>
     <string name="title_activity_server">ServerActivity</string>
+    <string name="button_send">Send</string>
+    <string name="text_input_hint">Enter your message here</string>
+    <string name="client">Client</string>
+    <string name="choose_client_server_hint">Please choose either to proceed</string>
+    <string name="server">Server</string>
 </resources>
