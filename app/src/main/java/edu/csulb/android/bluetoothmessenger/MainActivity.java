@@ -1,5 +1,6 @@
 package edu.csulb.android.bluetoothmessenger;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -8,8 +9,14 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 
 public class MainActivity extends AppCompatActivity {
+
+    private ListView chatHistoryListView;
+    private String[] historyHolderText = {"User 1", "User 2", "User 3", "User 4", "User 5", "User 6", "User 7"};
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,12 +25,17 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        chatHistoryListView = (ListView) findViewById(R.id.list_chat_history);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, historyHolderText);
+        chatHistoryListView.setAdapter(adapter);
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                Intent newChatIntent = new Intent(getApplicationContext(), FrontActivity.class);
+                startActivity(newChatIntent);
             }
         });
     }

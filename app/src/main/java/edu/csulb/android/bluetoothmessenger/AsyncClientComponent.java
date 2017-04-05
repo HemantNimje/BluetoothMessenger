@@ -26,6 +26,7 @@ public class AsyncClientComponent extends AsyncTask<Void, String, Void>
 		}
 		catch (IOException er)
 		{
+			Log.d("LOG: ", er.getMessage());
 		}
 		mDataSocket = tmp;
 	}
@@ -55,7 +56,7 @@ public class AsyncClientComponent extends AsyncTask<Void, String, Void>
 		mManager = new ConnectionManager(mDataSocket, mUpdater);
 		mManager.execute();
 		this.publishProgress("Connection established to " + mDataSocket.getRemoteDevice().getName());
-		
+
 		return null;
 	}
 
@@ -76,7 +77,7 @@ public class AsyncClientComponent extends AsyncTask<Void, String, Void>
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void write(String data)
 	{
 		mManager.write(data);

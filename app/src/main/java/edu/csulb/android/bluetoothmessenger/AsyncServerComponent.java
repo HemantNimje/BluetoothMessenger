@@ -6,111 +6,88 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import java.io.IOException;
 import java.util.UUID;
 
-public class AsyncServerComponent extends AsyncTask<Void, String, Void>
-{
-	private BluetoothServerSocket mServerSocket;
-	private final BluetoothAdapter mBltAdapter;
-	private final Context mContext;
-	private final UILink mUpdater;
-	private ConnectionManager mManager;
+public class AsyncServerComponent extends AsyncTask<Void, String, Void> {
+    private BluetoothServerSocket mServerSocket;
+    private final BluetoothAdapter mBltAdapter;
+    private final Context mContext;
+    private final UILink mUpdater;
+    private ConnectionManager mManager;
 
-	public AsyncServerComponent(Context context, UILink UIUpdater)
-	{
-		mContext = context;
-		mUpdater = UIUpdater;
-		BluetoothServerSocket tmp = null;
-		mBltAdapter = BluetoothAdapter.getDefaultAdapter();
+    public AsyncServerComponent(Context context, UILink UIUpdater) {
+        mContext = context;
+        mUpdater = UIUpdater;
+        BluetoothServerSocket tmp = null;
+        mBltAdapter = BluetoothAdapter.getDefaultAdapter();
 
-		if (mBltAdapter == null)
-			return;
+        if (mBltAdapter == null)
+            return;
 
-		if (mBltAdapter.isEnabled())
-		{
-			Intent discoverable = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-			discoverable.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-			mContext.startActivity(discoverable);
-		}
-		try
-		{
-			tmp = mBltAdapter.listenUsingRfcommWithServiceRecord("BLT", UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+        if (mBltAdapter.isEnabled()) {
+            Intent discoverable = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            discoverable.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+            mContext.startActivity(discoverable);
+        }
+        try {
+            tmp = mBltAdapter.listenUsingRfcommWithServiceRecord("BLT", UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
 
-		}
-		catch (IOException er)
-		{
+        } catch (IOException er) {
+            Log.d("LOG: mBLTAdapter - ", er.getMessage());
+        }
 
-		}
+        mServerSocket = tmp;
+    }
 
-		mServerSocket = tmp;
-	}
+    @Override
+    protected Void doInBackground(Void... arg0) {
+        BluetoothSocket socket = null;
+        while (true) {
+            try {
+                socket = mServerSocket.accept();
+            } catch (IOException e) {
+                e.printStackTrace();
+                break;
+            }
+            if (socket != null) {
+                try {
+                    mServerSocket.close();
+                    mManager = new ConnectionManager(socket, mUpdater);
+                    mManager.execute();
+                    break;
+                } catch (IOException e) {
+                    break;
+                }
+            }
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        this.publishProgress(socket.getRemoteDevice().getName() + " has connected!");
 
-	@Override
-	protected Void doInBackground(Void... arg0)
-	{
-		BluetoothSocket socket = null;
-		while (true)
-		{
-			try
-			{
-				socket = mServerSocket.accept();
-			}
-			catch (IOException e)
-			{
-				e.printStackTrace();
-				break;
-			}
-			if (socket != null)
-			{
-				try
-				{
-					mServerSocket.close();
-					mManager = new ConnectionManager(socket , mUpdater);
-					mManager.execute();
-					break;
-				}
-				catch (IOException e)
-				{
-					break;
-				}
-			}
-			try
-			{
-				Thread.sleep(20);
-			}
-			catch (InterruptedException e)
-			{
-				e.printStackTrace();
-			}
-		}
-		this.publishProgress(socket.getRemoteDevice().getName() + " has connected!");
+        return null;
+    }
 
-		return null;
-	}
+    protected void onProgressUpdate(String... strings) {
+        if (mUpdater != null)
+            mUpdater.useData(strings);
+    }
 
-	protected void onProgressUpdate(String... strings)
-	{
-		if (mUpdater != null)
-			mUpdater.useData(strings);
-	}
+    protected void closeSockets() {
+        try {
+            mManager.stop();
+            mServerSocket.close();
+        } catch (Exception er) {
+            Log.d("LOG: ", er.getMessage());
+        }
+    }
 
-	protected void closeSockets()
-	{
-		try
-		{
-			mManager.stop();
-			mServerSocket.close();
-		}
-		catch (Exception er)
-		{
-
-		}
-	}
-	
-	public void write(String data)
-	{
-		mManager.write(data);
-	}
+    public void write(String data) {
+        mManager.write(data);
+    }
 }
