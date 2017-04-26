@@ -41,7 +41,7 @@ public class AsyncServerComponent extends AsyncTask<Void, String, Void>
 		}
 		catch (IOException er)
 		{
-
+			er.printStackTrace();
 		}
 
 		mServerSocket = tmp;
@@ -68,7 +68,7 @@ public class AsyncServerComponent extends AsyncTask<Void, String, Void>
 				{
 					mServerSocket.close();
 					mManager = new ConnectionManager(socket , mUpdater);
-					mManager.execute();
+//					mManager.execute();
 					break;
 				}
 				catch (IOException e)
@@ -108,7 +108,7 @@ public class AsyncServerComponent extends AsyncTask<Void, String, Void>
 
 		}
 	}
-	
+
 	public void write(String data)
 	{
 		mManager.write(data);

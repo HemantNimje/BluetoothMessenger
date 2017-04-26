@@ -13,18 +13,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
+import static edu.csulb.android.bluetoothmessenger.FrontActivity.bluetoothAdapter;
+import static edu.csulb.android.bluetoothmessenger.FrontActivity.bluetoothAdapter;
+
 public class BluetoothManager
 {
-	private BluetoothAdapter bluetoothAdapter;
+//	private BluetoothAdapter bluetoothAdapter;
 	private Context context;
 	private ArrayAdapter<String> list;
 	private ArrayList<BluetoothDevice> foundDevices;
 	private HashMap<String, Integer> hash;
+	private static final int ENABLE_BT_REQUEST_CODE = 1;
 
-	public BluetoothManager(Context context, ArrayAdapter<String> list)
+
+	public BluetoothManager(Context context, ArrayAdapter<String> list,BluetoothAdapter bluetoothAdapter_client)
 	{
 		this.context = context;
-		bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+//		bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+//		bluetoothAdapter = bluetoothAdapter_client;
 		foundDevices = new ArrayList<BluetoothDevice>();
 		hash = new HashMap<String, Integer>();
 		this.list = list;
@@ -32,6 +38,7 @@ public class BluetoothManager
 
 	public boolean checkDevices()
 	{
+
 		if (bluetoothAdapter == null)
 		{
 			// check if the device has Bluetooth
@@ -40,9 +47,12 @@ public class BluetoothManager
 		if (!bluetoothAdapter.isEnabled())
 		{
 			// check if the bluetooth is enabled
+			System.out.println("INSERT checkDevices !!!");
 			Intent enableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 			context.startActivity(enableBluetooth);
+			System.out.println("Enable !!!");
 		}
+
 		Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 		if (pairedDevices.size() > 0)
 		{
@@ -54,11 +64,45 @@ public class BluetoothManager
 			}
 			list.notifyDataSetChanged();
 		}
-		bluetoothAdapter.startDiscovery();
+
+//		discoverDevices();
+		// To scan for remote Bluetooth devices
+//		bluetoothAdapter.startDiscovery();
+//		if (bluetoothAdapter.startDiscovery()) {
+//			Toast.makeText(context, "Discovering other bluetooth devices...",
+//					Toast.LENGTH_SHORT).show();
+//		} else {
+//			Toast.makeText(context, "Discovery failed to start.",
+//					Toast.LENGTH_SHORT).show();
+//		}
 		IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
 		context.registerReceiver(receiver, filter);
 		return true;
 	}
+
+
+
+
+//	protected void discoverDevices(){
+//		// To scan for remote Bluetooth devices
+//
+//
+//		if (bluetoothAdapter.startDiscovery()) {
+//			Toast.makeText(context, "Discovering other bluetooth devices...",
+//					Toast.LENGTH_SHORT).show();
+//		} else {
+//			Toast.makeText(context, "Discovery failed to start.",
+//					Toast.LENGTH_SHORT).show();
+//		}
+//	}
+
+
+
+//	public  void visible(){
+//		Intent discoverable = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+//		discoverable.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+//		context.startActivity(discoverable);
+//	}
 
 	private final BroadcastReceiver receiver = new BroadcastReceiver()
 	{
@@ -90,6 +134,19 @@ public class BluetoothManager
 		}
 
 	};
+
+
+	protected void onPause() {
+
+		context.unregisterReceiver(receiver);
+	}
+
+	protected void onResume() {
+//		super.onResume();
+		// Register the BroadcastReceiver for ACTION_FOUND
+		IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+		context.registerReceiver(receiver, filter);
+	}
 
 	public void stopDiscovery()
 	{

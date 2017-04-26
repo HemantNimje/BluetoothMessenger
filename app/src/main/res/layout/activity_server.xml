@@ -8,22 +8,27 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".ServerActivity" >
 
+
     <EditText
         android:id="@+id/serverEditText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/serverSend"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/serverInput"
         android:layout_alignParentLeft="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
+        android:allowUndo="true"
         android:editable="false"
         android:ems="10"
         android:enabled="false"
         android:gravity="top"
-        android:inputType="textMultiLine" >
+        android:inputType="textMultiLine">
 
-        <requestFocus />
+        <!--<requestFocus />-->
+
+
     </EditText>
+
 
     <EditText
         android:id="@+id/serverInput"
@@ -31,6 +36,7 @@
         android:layout_height="wrap_content"
         android:layout_alignLeft="@+id/clientEditText"
         android:layout_alignParentBottom="true"
+        android:allowUndo="true"
         android:ems="10"
         android:hint="Enter text here..." />
 
@@ -41,7 +47,9 @@
         android:layout_alignBaseline="@+id/serverInput"
         android:layout_alignBottom="@+id/serverInput"
         android:layout_alignRight="@+id/serverEditText"
-        android:text="Send"
-        android:onClick="SendClick" />
+        android:allowUndo="true"
+        android:onClick="SendClick"
+        android:text="Send" />
 
 </RelativeLayout>
+

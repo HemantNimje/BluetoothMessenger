@@ -1,33 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_front"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context=".FrontActivity" >
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    tools:context=".FrontActivity">
 
-    <Button
-        android:id="@+id/clientSend"
-        android:layout_width="wrap_content"
+
+    <ToggleButton
+        android:id="@+id/btnBluetooth"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="54dp"
-        android:text="Server" 
-        android:onClick="serverClick"/>
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:textOn="Bluetooth is enabled"
+        android:textOff="Bluetooth"
+        android:onClick="enableBluetoothActivity"
+    />
+
+
+    <!--android:onClick="getBluetoothActivity"-->
+    <!--
+    <ToggleButton
+        android:id="@+id/btnWiFi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="52dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:textOn="WI-Fi Direct is enabled"
+        android:textOff="WI-Fi Direct"
+        android:onClick="enableWiFiActivity"
+        />
 
     <Button
-        android:id="@+id/button2"
-        android:layout_width="wrap_content"
+
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/clientSend"
-        android:layout_alignRight="@+id/clientSend"
-        android:layout_below="@+id/clientSend"
-        android:layout_marginTop="42dp"
-        android:text="Client"
-        android:onClick="clientClick"/>
+        android:text="TextMessage"
+        android:id="@+id/btnTextMessage"
+        android:onClick="getBluetoothActivity"
+        android:layout_marginTop="162dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+    <Button
+
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Photo"
+        android:id="@+id/btnPhoto"
+        android:onClick="image_activity"
+        android:layout_marginTop="212dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <Button
+
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Voice Message"
+        android:id="@+id/btnVoice"
+        android:onClick="audio_activity"
+        android:layout_marginTop="262dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"/> -->
 
 </RelativeLayout>

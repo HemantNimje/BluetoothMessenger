@@ -53,7 +53,7 @@ public class AsyncClientComponent extends AsyncTask<Void, String, Void>
 			}
 		}
 		mManager = new ConnectionManager(mDataSocket, mUpdater);
-		mManager.execute();
+//		mManager.execute();
 		this.publishProgress("Connection established to " + mDataSocket.getRemoteDevice().getName());
 		
 		return null;
