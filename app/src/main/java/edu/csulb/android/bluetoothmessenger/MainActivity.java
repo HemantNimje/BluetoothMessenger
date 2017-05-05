@@ -59,6 +59,12 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
+        // Open profile settings on action_profile click
+        if (id == R.id.action_profile) {
+            Intent profileIntent = new Intent(getApplicationContext(), ProfileActivity.class);
+            startActivity(profileIntent);
+        }
+
         return super.onOptionsItemSelected(item);
     }
 }
