@@ -20,6 +20,9 @@ public class FrontActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_front);
 
+        // Enable the up button on the action bar
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
         context = this;
         bltAdapter = BluetoothAdapter.getDefaultAdapter();
         if (!bltAdapter.isEnabled()) {
@@ -33,7 +36,8 @@ public class FrontActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.front, menu);
+        // Inflate the menu; this adds items to the action bar if it is present.
+        //getMenuInflater().inflate(R.menu.front, menu);
         return true;
     }
 
