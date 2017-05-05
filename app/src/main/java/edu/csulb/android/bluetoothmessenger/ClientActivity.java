@@ -13,7 +13,7 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-public class ClientActivity extends AppCompatActivity{
+public class ClientActivity extends AppCompatActivity {
     private ListView list;
     private ArrayAdapter<String> adapter;
     private Context context;
@@ -23,6 +23,10 @@ public class ClientActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client);
+
+        // Enable the up button on the action bar
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
         context = this;
         list = (ListView) findViewById(R.id.list_available_devices);
         adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);

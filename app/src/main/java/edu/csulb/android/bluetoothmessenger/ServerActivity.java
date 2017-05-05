@@ -25,6 +25,10 @@ public class ServerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_server);
+
+        // Enable the up button on the action bar
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
         chatText = (EditText) findViewById(R.id.serverEditText);
         inputText = (EditText) findViewById(R.id.serverInput);
         server = new AsyncServerComponent(this, asdf);
@@ -33,6 +37,7 @@ public class ServerActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.server, menu);
         return true;
     }

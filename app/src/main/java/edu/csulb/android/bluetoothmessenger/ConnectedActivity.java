@@ -26,6 +26,10 @@ public class ConnectedActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_connected);
+
+        // Enable the up button on the action bar
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
         chatText = (EditText) findViewById(R.id.clientEditText);
         inputText = (EditText) findViewById(R.id.clientInput);
         Bundle extras = this.getIntent().getExtras();
