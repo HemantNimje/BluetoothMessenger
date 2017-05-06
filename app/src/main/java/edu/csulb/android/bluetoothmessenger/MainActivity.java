@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent newChatIntent = new Intent(getApplicationContext(), FrontActivity.class);
+                Intent newChatIntent = new Intent(getApplicationContext(), ChatActivity.class);
                 startActivity(newChatIntent);
             }
         });
