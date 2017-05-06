@@ -34,6 +34,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.DEVICE_ADDRESS;
 
 /**
  * Created by Hemant on 5/5/2017.
@@ -71,6 +75,7 @@ public class ChatActivity extends AppCompatActivity{
     private ArrayAdapter<String> mConversationArrayAdapter;
 
     private String mConnectedDeviceName = null;
+    private String mConnectedDeviceAddress = null;
 
     private StringBuffer mOutStringBuffer;
     private ListView mConversationView;
@@ -78,6 +83,7 @@ public class ChatActivity extends AppCompatActivity{
     private ImageButton mButtonSend;
     ImageButton connectWiFi, connectBT;
 
+    private Messages db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,6 +170,7 @@ public class ChatActivity extends AppCompatActivity{
     public void onResume() {
         super.onResume();
 
+        db = new Messages(getApplicationContext());
         // Performing this check in onResume() covers the case in which BT was
         // not enabled during onStart(), so we were paused to enable it...
         // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
@@ -298,9 +305,12 @@ public class ChatActivity extends AppCompatActivity{
                 .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
         // Get the BluetoothDevice object
         BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+        mConnectedDeviceAddress = address;
         // Attempt to connect to the device
         mChatService.connect(device);
     }
+
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("y-MM-dd HH:mm:ss");
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -331,21 +341,41 @@ public class ChatActivity extends AppCompatActivity{
                     byte[] writeBuf = (byte[]) msg.obj;
                     // construct a string from the buffer
                     String writeMessage = new String(writeBuf);
-                    mConversationArrayAdapter.add("Me:  " + writeMessage);
+                    Calendar calendar = Calendar.getInstance();
+                    String time = sdf.format(calendar.getTime());
+                    mConversationArrayAdapter.add("Me (" + time + "): " + writeMessage);
+
+                    // Write messages to database
+                    // Add mAddress and mConnectedDeviceName to db for future recovery
+                    db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage);
                     break;
+
                 case MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
+                    Calendar cal = Calendar.getInstance();
+                    String readTime = sdf.format(cal.getTime());
+                    mConversationArrayAdapter.add(mConnectedDeviceName + " (" + readTime + "):  "
+                            + readMessage);
+
+                    // Write messages to db
+                    db.insertReceivedMessage(readTime, mConnectedDeviceAddress, readMessage);
                     break;
+
+
                 case MESSAGE_DEVICE_NAME:
                     // save the connected device's name
                     mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
+                    mConnectedDeviceAddress = msg.getData().getString(DEVICE_ADDRESS);
                     if (null != getApplicationContext()) {
                         Toast.makeText(getApplicationContext(), "Connected to "
                                 + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     }
+
+                    // insert users name and mac address to the database
+                    db.insertUserName(mConnectedDeviceAddress, mConnectedDeviceName);
+
                     break;
                 case MESSAGE_TOAST:
                     if (null != getApplicationContext()) {
