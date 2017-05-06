@@ -269,7 +269,7 @@ public class ChatActivity extends AppCompatActivity{
                     Toast.makeText(this, "Bluetooth Enabled", Toast.LENGTH_SHORT).show();
 
                     // Initialize the BluetoothChatService to perform bluetooth connection
-                    mChatService = new BluetoothChatService(getApplicationContext(), mHandler);
+                    mChatService = new BluetoothChatService(mHandler);
                 } else {
                     Toast.makeText(this, "Bluetooth not enabled", Toast.LENGTH_SHORT).show();
                     finish();
@@ -427,7 +427,7 @@ public class ChatActivity extends AppCompatActivity{
         });
 
         // Initialize the BluetoothChatService to perform bluetooth connections
-        mChatService = new BluetoothChatService(getApplicationContext(), mHandler);
+        mChatService = new BluetoothChatService(mHandler);
 
         // Initialize the buffer for outgoing messages
         mOutStringBuffer = new StringBuffer("");
