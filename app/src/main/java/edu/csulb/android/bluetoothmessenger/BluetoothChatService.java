@@ -44,6 +44,7 @@ public class BluetoothChatService {
 
 
     public static final String DEVICE_NAME = "device_name";
+    public static final String DEVICE_ADDRESS = "device_address";
     public static final String TOAST = "toast";
 
     public static final int MESSAGE_STATE_CHANGE = 1;
@@ -347,6 +348,7 @@ public class BluetoothChatService {
         Message msg = mHandler.obtainMessage(MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
         bundle.putString(DEVICE_NAME, device.getName());
+        bundle.putString(DEVICE_ADDRESS, device.getAddress());
         msg.setData(bundle);
         mHandler.sendMessage(msg);
         // Update UI title
