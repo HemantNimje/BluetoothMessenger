@@ -41,6 +41,8 @@
             android:name=".DeviceListActivity"
             android:label="Select a device to connect"
             android:theme="@android:style/Theme.Holo.Dialog" />
+
+        <activity android:name=".ChatHistory"/>
     </application>
 
 </manifest>
