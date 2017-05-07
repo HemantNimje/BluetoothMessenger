@@ -104,10 +104,13 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
-        // Open profile settings on action_profile click
-        if (id == R.id.action_profile) {
-            Intent profileIntent = new Intent(getApplicationContext(), ProfileActivity.class);
-            startActivity(profileIntent);
+        switch(id) {
+            case R.id.action_profile:
+                Intent profileIntent = new Intent(getApplicationContext(), ProfileActivity.class);
+                startActivity(profileIntent);
+                break;
+            case R.id.action_groupchat:
+                break;
         }
 
         return super.onOptionsItemSelected(item);

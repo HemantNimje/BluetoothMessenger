@@ -7,4 +7,11 @@
         android:orderInCategory="100"
         android:title="@string/action_profile"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_groupchat"
+        android:orderInCategory="100"
+        android:title="@string/group_chat"
+        app:showAsAction="never" />
+
 </menu>
