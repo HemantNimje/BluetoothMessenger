@@ -50,7 +50,6 @@ public class ChatActivity extends AppCompatActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int REQUEST_CONNECT_DEVICE = 3;
     private BluetoothChatService mChatService = null;
-//    private BluetoothAdapter mBluetoothAdapter = null;
 
     private static final int SELECT_IMAGE = 11;
     private static final int MY_PERMISSION_REQUEST_READ_EXTERNAL_STORAGE = 2;
@@ -158,7 +157,6 @@ public class ChatActivity extends AppCompatActivity {
         mConversationView = (ListView) findViewById(R.id.message_history);
         mEditText = (EditText) findViewById(R.id.edit_text_text_message);
         mButtonSend = (ImageButton) findViewById(R.id.btn_send);
-//        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         if (mBluetoothAdapter == null) {
             Toast.makeText(this, "Device does not support bluetooth", Toast.LENGTH_SHORT).show();
@@ -166,21 +164,6 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-
-   /* @Override
-    protected void onStart() {
-        super.onStart();
-
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-
-        } else if (mChatService == null) {
-            System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-            setupChat();
-        }
-    }
-*/
     @Override
     public void onResume() {
         super.onResume();
