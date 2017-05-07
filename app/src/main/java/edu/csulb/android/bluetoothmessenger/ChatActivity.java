@@ -101,14 +101,6 @@ public class ChatActivity extends AppCompatActivity {
         mFileName = getExternalCacheDir().getAbsolutePath();
         mFileName += "/audiorecordtest.3gp";
 
-        /*connectBT.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent bluetoothIntent = new Intent(getApplicationContext(), DeviceListActivity.class);
-                startActivityForResult(bluetoothIntent, REQUEST_CONNECT_DEVICE);
-            }
-        });*/
-
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
 
         final ImageButton btnRecord = (ImageButton) findViewById(R.id.btn_record);
