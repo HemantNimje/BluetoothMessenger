@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -101,13 +102,13 @@ public class ChatActivity extends AppCompatActivity {
         mFileName = getExternalCacheDir().getAbsolutePath();
         mFileName += "/audiorecordtest.3gp";
 
-        connectBT.setOnClickListener(new View.OnClickListener() {
+        /*connectBT.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent bluetoothIntent = new Intent(getApplicationContext(), DeviceListActivity.class);
                 startActivityForResult(bluetoothIntent, REQUEST_CONNECT_DEVICE);
             }
-        });
+        });*/
 
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
 
@@ -211,6 +212,11 @@ public class ChatActivity extends AppCompatActivity {
             case R.id.menu_make_discoverable:
                 ensureDiscoverable();
                 return true;
+
+            case R.id.menu_search_devices:
+                Intent bluetoothIntent = new Intent(getApplicationContext(), DeviceListActivity.class);
+                startActivityForResult(bluetoothIntent, REQUEST_CONNECT_DEVICE);
+                break;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -314,6 +320,7 @@ public class ChatActivity extends AppCompatActivity {
                     switch (msg.arg1) {
                         case BluetoothChatService.STATE_CONNECTED:
                             connectBT.setImageResource(R.drawable.ic_bluetooth_connected_black_24dp);
+                            //connectionStatus.setIcon(R.drawable.ic_bluetooth_connected_white_24dp);
                             try {
                                 mConversationArrayAdapter.clear();
                             } catch (Exception e) {
@@ -326,6 +333,7 @@ public class ChatActivity extends AppCompatActivity {
                         case BluetoothChatService.STATE_LISTEN:
                         case BluetoothChatService.STATE_NONE:
                             connectBT.setImageResource(R.drawable.ic_bluetooth_disabled_black_24dp);
+                            //connectionStatus.setIcon(R.drawable.ic_bluetooth_white_24dp);
                             //setStatus(R.string.title_not_connected);
                             break;
                     }

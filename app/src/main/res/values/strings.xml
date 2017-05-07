@@ -48,4 +48,6 @@
     <string name="title_not_connected">not connected</string>
 
     <string name="group_chat">Group Chat</string>
+    <string name="search">Search</string>
+    <string name="device_connection_status">Device Connection Status</string>
 </resources>
