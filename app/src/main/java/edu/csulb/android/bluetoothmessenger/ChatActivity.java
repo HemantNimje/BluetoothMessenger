@@ -40,10 +40,6 @@ import java.util.Calendar;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.DEVICE_ADDRESS;
 import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
 
-/**
- * Created by Hemant on 5/5/2017.
- */
-
 public class ChatActivity extends AppCompatActivity {
 
 
@@ -81,7 +77,7 @@ public class ChatActivity extends AppCompatActivity {
     private ListView mConversationView;
     private EditText mEditText;
     private ImageButton mButtonSend;
-    ImageButton connectWiFi, connectBT;
+    ImageButton connectBT;
 
     private Messages db;
 
@@ -152,7 +148,6 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     public void init() {
-        connectWiFi = (ImageButton) findViewById(R.id.btn_connect_wifi);
         connectBT = (ImageButton) findViewById(R.id.btn_connect_bt);
         mConversationView = (ListView) findViewById(R.id.message_history);
         mEditText = (EditText) findViewById(R.id.edit_text_text_message);

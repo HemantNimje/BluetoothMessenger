@@ -11,14 +11,6 @@
         android:layout_height="wrap_content">
 
         <ImageButton
-            android:id="@+id/btn_connect_wifi"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:contentDescription="@string/connect_wifi"
-            android:src="@drawable/ic_network_wifi_black_24dp" />
-
-
-        <ImageButton
             android:id="@+id/btn_connect_bt"
             android:layout_width="56dp"
             android:layout_height="56dp"
@@ -92,8 +84,10 @@
         <EditText
             android:id="@+id/edit_text_text_message"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:inputType="textAutoCorrect|textMultiLine"
+            android:layout_gravity="bottom"
             android:hint="@string/message_hint" />
 
         <ImageButton
@@ -101,6 +95,7 @@
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:contentDescription="@string/send"
+            android:layout_gravity="bottom"
             android:src="@drawable/ic_send_black_24dp"
             android:text="@string/send" />
 
