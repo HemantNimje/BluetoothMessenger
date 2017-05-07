@@ -9,8 +9,8 @@
         app:showAsAction="always" />
 
     <item
-        android:id="@+id/device_connection_status"
-        android:icon="@drawable/ic_bluetooth_white_24dp"
+        android:id="@+id/device_connect_disconnect"
+        android:icon="@drawable/ic_import_export_white_24dp"
         android:title="@string/device_connection_status"
         app:showAsAction="always" />
 

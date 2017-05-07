@@ -6,17 +6,21 @@
     android:orientation="vertical"
     tools:context="edu.csulb.android.bluetoothmessenger.ChatActivity">
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/connection_status"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:padding="8dp"
+        android:text="@string/device_connection_status"
+        android:textSize="16sp" />
 
-        <ImageButton
-            android:id="@+id/btn_connect_bt"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:contentDescription="@string/connect_bluetooth"
-            android:src="@drawable/ic_bluetooth_disabled_black_24dp" />
-    </LinearLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:background="@android:color/darker_gray" />
 
     <ListView
         android:id="@+id/message_history"
@@ -85,17 +89,17 @@
             android:id="@+id/edit_text_text_message"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:inputType="textAutoCorrect|textMultiLine"
             android:layout_gravity="bottom"
-            android:hint="@string/message_hint" />
+            android:layout_weight="1"
+            android:hint="@string/message_hint"
+            android:inputType="textAutoCorrect|textMultiLine" />
 
         <ImageButton
             android:id="@+id/btn_send"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:contentDescription="@string/send"
             android:layout_gravity="bottom"
+            android:contentDescription="@string/send"
             android:src="@drawable/ic_send_black_24dp"
             android:text="@string/send" />
 

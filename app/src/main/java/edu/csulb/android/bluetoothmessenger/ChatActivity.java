@@ -78,8 +78,7 @@ public class ChatActivity extends AppCompatActivity {
     private ListView mConversationView;
     private EditText mEditText;
     private ImageButton mButtonSend;
-    ImageButton connectBT;
-
+    private TextView connectionStatus;
     private Messages db;
 
     @Override
@@ -149,7 +148,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     public void init() {
-        connectBT = (ImageButton) findViewById(R.id.btn_connect_bt);
+        connectionStatus = (TextView) findViewById(R.id.connection_status);
         mConversationView = (ListView) findViewById(R.id.message_history);
         mEditText = (EditText) findViewById(R.id.edit_text_text_message);
         mButtonSend = (ImageButton) findViewById(R.id.btn_send);
@@ -319,8 +318,7 @@ public class ChatActivity extends AppCompatActivity {
                 case MESSAGE_STATE_CHANGE:
                     switch (msg.arg1) {
                         case BluetoothChatService.STATE_CONNECTED:
-                            connectBT.setImageResource(R.drawable.ic_bluetooth_connected_black_24dp);
-                            //connectionStatus.setIcon(R.drawable.ic_bluetooth_connected_white_24dp);
+                            connectionStatus.setText(getResources().getString(R.string.connected));
                             try {
                                 mConversationArrayAdapter.clear();
                             } catch (Exception e) {
@@ -328,12 +326,10 @@ public class ChatActivity extends AppCompatActivity {
                             }
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
-                            connectBT.setImageResource(R.drawable.ic_bluetooth_searching_black_24dp);
                             break;
                         case BluetoothChatService.STATE_LISTEN:
                         case BluetoothChatService.STATE_NONE:
-                            connectBT.setImageResource(R.drawable.ic_bluetooth_disabled_black_24dp);
-                            //connectionStatus.setIcon(R.drawable.ic_bluetooth_white_24dp);
+                            connectionStatus.setText(getResources().getString(R.string.disconnected));
                             //setStatus(R.string.title_not_connected);
                             break;
                     }
