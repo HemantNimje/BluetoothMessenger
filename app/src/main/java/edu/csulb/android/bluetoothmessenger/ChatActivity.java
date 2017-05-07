@@ -38,18 +38,19 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.DEVICE_ADDRESS;
+import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
 
 /**
  * Created by Hemant on 5/5/2017.
  */
 
-public class ChatActivity extends AppCompatActivity{
+public class ChatActivity extends AppCompatActivity {
 
 
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int REQUEST_CONNECT_DEVICE = 3;
     private BluetoothChatService mChatService = null;
-    private BluetoothAdapter mBluetoothAdapter = null;
+//    private BluetoothAdapter mBluetoothAdapter = null;
 
     private static final int SELECT_IMAGE = 11;
     private static final int MY_PERMISSION_REQUEST_READ_EXTERNAL_STORAGE = 2;
@@ -91,6 +92,16 @@ public class ChatActivity extends AppCompatActivity{
         setContentView(R.layout.chat_activity_main);
 
         init();
+
+        if (!mBluetoothAdapter.isEnabled()) {
+            System.out.println("ENTERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+
+        } else if (mChatService == null) {
+            System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            setupChat();
+        }
         // Record to the external cache directory for visibility
         mFileName = getExternalCacheDir().getAbsolutePath();
         mFileName += "/audiorecordtest.3gp";
@@ -137,6 +148,8 @@ public class ChatActivity extends AppCompatActivity{
                 mStartPlaying = !mStartPlaying;
             }
         });
+
+
     }
 
     public void init() {
@@ -145,7 +158,7 @@ public class ChatActivity extends AppCompatActivity{
         mConversationView = (ListView) findViewById(R.id.message_history);
         mEditText = (EditText) findViewById(R.id.edit_text_text_message);
         mButtonSend = (ImageButton) findViewById(R.id.btn_send);
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+//        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         if (mBluetoothAdapter == null) {
             Toast.makeText(this, "Device does not support bluetooth", Toast.LENGTH_SHORT).show();
@@ -154,18 +167,20 @@ public class ChatActivity extends AppCompatActivity{
     }
 
 
-    @Override
+   /* @Override
     protected void onStart() {
         super.onStart();
 
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+
         } else if (mChatService == null) {
+            System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
             setupChat();
         }
     }
-
+*/
     @Override
     public void onResume() {
         super.onResume();
@@ -321,9 +336,9 @@ public class ChatActivity extends AppCompatActivity{
                     switch (msg.arg1) {
                         case BluetoothChatService.STATE_CONNECTED:
                             connectBT.setImageResource(R.drawable.ic_bluetooth_connected_black_24dp);
-                            try{
+                            try {
                                 mConversationArrayAdapter.clear();
-                            }catch (Exception e){
+                            } catch (Exception e) {
                                 e.printStackTrace();
                             }
                             break;
@@ -356,8 +371,12 @@ public class ChatActivity extends AppCompatActivity{
                     String readMessage = new String(readBuf, 0, msg.arg1);
                     Calendar cal = Calendar.getInstance();
                     String readTime = sdf.format(cal.getTime());
-                    mConversationArrayAdapter.add(mConnectedDeviceName + " (" + readTime + "):  "
-                            + readMessage);
+                    try {
+                        mConversationArrayAdapter.add(mConnectedDeviceName + " (" + readTime + "):  "
+                                + readMessage);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
                     // Write messages to db
                     db.insertReceivedMessage(readTime, mConnectedDeviceAddress, readMessage);

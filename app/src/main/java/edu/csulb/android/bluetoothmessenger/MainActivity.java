@@ -1,5 +1,6 @@
 package edu.csulb.android.bluetoothmessenger;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -21,11 +22,21 @@ public class MainActivity extends AppCompatActivity {
 
     private ListView chatHistoryListView;
     private ArrayList<String> previousChatNames;
+    public static BluetoothAdapter mBluetoothAdapter = null;
+    private static final int REQUEST_ENABLE_BT = 1;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (!mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            mBluetoothAdapter.enable();
+        }
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -35,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
+                System.out.println(mBluetoothAdapter.enable());
                 Intent newChatIntent = new Intent(getApplicationContext(), ChatActivity.class);
                 startActivity(newChatIntent);
             }
