@@ -169,6 +169,22 @@ public class ChatActivity extends AppCompatActivity {
                 mChatService.start();
             }
         }
+
+        startPreviousChat();
+    }
+
+    private void startPreviousChat() {
+        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
+                .getSerializableExtra("USERS-INFO");
+
+        if (usersInfo == null) {
+            return;
+        }
+
+        //TODO: Implement group chat here.
+        for (UserInfo user : usersInfo) {
+            connectDevice(user.macAddress);
+        }
     }
 
     private void loadChatHistory(Intent intent) {
