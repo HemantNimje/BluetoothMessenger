@@ -52,4 +52,7 @@
     <string name="device_connection_status">Device Connection Status</string>
     <string name="connected">Connected</string>
     <string name="disconnected">Disconnected</string>
+    <string name="connect">Connect</string>
+    <string name="device_name">Device Name</string>
+    <string name="device_address">Device Address</string>
 </resources>
