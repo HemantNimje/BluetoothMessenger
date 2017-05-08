@@ -219,7 +219,6 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-//        mConversationArrayAdapter.clear();
         chatMessageAdapter.clear();
 
         List<ChatMessage> readMessages = getAllMessages(usersInfo, "Received");
@@ -228,8 +227,7 @@ public class ChatActivity extends AppCompatActivity {
 
         String chatHistory = getChatHistory(combinedMessages);
         Log.d(TAG, "chatHistory: " + chatHistory);
-        mConversationArrayAdapter.add(chatHistory);
-//        chatMessageAdapter.add(chatHistory);
+        chatMessageAdapter.add(new MessageInstance(true,new String(chatHistory)));;
     }
 
     String getChatHistory(List<ChatMessage> messages) {
