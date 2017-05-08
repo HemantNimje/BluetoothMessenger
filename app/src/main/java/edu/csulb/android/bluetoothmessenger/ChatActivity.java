@@ -180,6 +180,8 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
+        mConversationArrayAdapter.clear();
+
         List<ChatMessage> readMessages = getAllMessages(usersInfo, "Received");
         List<ChatMessage> sentMessages = getAllMessages(usersInfo, "Sent");
         List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
