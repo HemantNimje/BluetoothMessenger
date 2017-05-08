@@ -36,7 +36,9 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.DEVICE_ADDRESS;
 import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
@@ -79,7 +81,9 @@ public class ChatActivity extends AppCompatActivity {
     private EditText mEditText;
     private ImageButton mButtonSend;
     private TextView connectionStatus;
-    private Messages db;
+    private ChatMessages db;
+
+    private final static String TAG = "ChatActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,13 +93,8 @@ public class ChatActivity extends AppCompatActivity {
         init();
 
         if (!mBluetoothAdapter.isEnabled()) {
-            System.out.println("ENTERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-
-        } else if (mChatService == null) {
-            System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-            setupChat();
         }
         // Record to the external cache directory for visibility
         mFileName = getExternalCacheDir().getAbsolutePath();
@@ -136,7 +135,6 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
-
     }
 
     public void init() {
@@ -154,8 +152,12 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
-
-        db = new Messages(getApplicationContext());
+        if (mChatService == null) {
+            Log.d(TAG, "Setting up chat");
+            setupChat();
+        }
+        db = new ChatMessages(getApplicationContext());
+        loadChatHistory(getIntent());
         // Performing this check in onResume() covers the case in which BT was
         // not enabled during onStart(), so we were paused to enable it...
         // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
@@ -166,6 +168,78 @@ public class ChatActivity extends AppCompatActivity {
                 mChatService.start();
             }
         }
+
+       //startPreviousChat();
+    }
+
+    private void startPreviousChat() {
+        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
+                .getSerializableExtra("USERS-INFO");
+
+        if (usersInfo == null) {
+            return;
+        }
+
+        //TODO: Implement group chat here.
+        for (UserInfo user : usersInfo) {
+            connectDevice(user.macAddress);
+        }
+    }
+
+    private void loadChatHistory(Intent intent) {
+        Log.d(TAG, "Loading chat history");
+
+        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) intent
+                .getSerializableExtra("USERS-INFO");
+        if (usersInfo == null) {
+            return;
+        }
+
+        mConversationArrayAdapter.clear();
+
+        List<ChatMessage> readMessages = getAllMessages(usersInfo, "Received");
+        List<ChatMessage> sentMessages = getAllMessages(usersInfo, "Sent");
+        List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
+
+        String chatHistory = getChatHistory(combinedMessages);
+        Log.d(TAG, "chatHistory: " + chatHistory);
+        mConversationArrayAdapter.add(chatHistory);
+    }
+
+    String getChatHistory(List<ChatMessage> messages) {
+        StringBuilder sb = new StringBuilder();
+
+        for (ChatMessage message : messages) {
+            sb.append(message.user + " (" + message.timeStamp + "): " + message.message + "\n");
+        }
+
+        return sb.toString();
+    }
+
+    List<ChatMessage> getAllMessages(List<UserInfo> usersInfo, String messageType) {
+        List<ChatMessage> messages = new ArrayList<>();
+
+        for (UserInfo info : usersInfo) {
+            String macAddress = info.macAddress;
+            String userName = info.name;
+            List<ChatMessage> readMessages;
+
+            if (messageType.equals("Sent")) {
+                readMessages = db.retrieveSentMessages(macAddress);
+            } else {
+                readMessages = db.retrieveReceivedMessages(macAddress);
+            }
+
+            for (ChatMessage message : readMessages) {
+                if (messageType.equals("Sent")) {
+                    message.user = "Me";
+                } else {
+                    message.user = userName;
+                }
+                messages.add(message);
+            }
+        }
+        return messages;
     }
 
 
@@ -184,10 +258,20 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "destroy called");
         super.onDestroy();
         if (mChatService != null) {
             mChatService.stop();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        Log.d(TAG, "back pressed");
+        if (mChatService != null) {
+            mChatService.stop();
+        }
+        finish();
     }
 
     @Override
@@ -282,20 +366,17 @@ public class ChatActivity extends AppCompatActivity {
             case REQUEST_CONNECT_DEVICE:
                 // When DeviceListActivity returns with a device to connect
                 if (resultCode == Activity.RESULT_OK) {
-                    connectDevice(data);
+                    String macAddress = data.getExtras()
+                            .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+                    connectDevice(macAddress);
                 }
                 break;
         }
     }
 
-
-    private void connectDevice(Intent data) {
-        // Get the device MAC address
-        String address = data.getExtras()
-                .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
-        // Get the BluetoothDevice object
-        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
-        mConnectedDeviceAddress = address;
+    private void connectDevice(String macAddress) {
+        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(macAddress);
+        mConnectedDeviceAddress = macAddress;
         // Attempt to connect to the device
         mChatService.connect(device);
     }
@@ -311,11 +392,6 @@ public class ChatActivity extends AppCompatActivity {
                     switch (msg.arg1) {
                         case BluetoothChatService.STATE_CONNECTED:
                             connectionStatus.setText(getResources().getString(R.string.connected));
-                            try {
-                                mConversationArrayAdapter.clear();
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
                             break;
@@ -366,14 +442,42 @@ public class ChatActivity extends AppCompatActivity {
                                 + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     }
 
+                    // Check if user is in DB, if so, retrieve chat history
+                    // else clear screen
+
+                    Log.d(TAG, "Before check if in db");
+                    if (db.isUserInDb(mConnectedDeviceAddress)) {
+                        Log.d(TAG, "User in db");
+                        Intent intent = new Intent();
+                        ArrayList<UserInfo> users = new ArrayList<>();
+                        users.add(new UserInfo(mConnectedDeviceName, mConnectedDeviceAddress));
+                        intent.putExtra("USERS-INFO", users);
+                        loadChatHistory(intent);
+                    } else {
+                        Log.d(TAG, "User not in db");
+                        try {
+                            mConversationArrayAdapter.clear();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                     // insert users name and mac address to the database
-                    db.insertUserName(mConnectedDeviceAddress, mConnectedDeviceName);
+                    try {
+                        db.insertUserName(mConnectedDeviceAddress, mConnectedDeviceName);
+                    } catch(Exception e) {
+                        Log.d(TAG, "Unique");
+                    }
 
                     break;
                 case MESSAGE_TOAST:
                     if (null != getApplicationContext()) {
                         Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
                                 Toast.LENGTH_SHORT).show();
+
+                        if (msg.getData().getString(TOAST).equals("Device connection was lost")) {
+                            finish();
+                        }
                     }
                     break;
             }
