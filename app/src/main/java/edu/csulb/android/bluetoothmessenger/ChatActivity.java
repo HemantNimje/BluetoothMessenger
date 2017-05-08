@@ -170,7 +170,7 @@ public class ChatActivity extends AppCompatActivity {
             }
         }
 
-        startPreviousChat();
+       //startPreviousChat();
     }
 
     private void startPreviousChat() {
@@ -241,6 +241,7 @@ public class ChatActivity extends AppCompatActivity {
         }
         return messages;
     }
+
 
     @Override
     protected void onStop() {
@@ -437,7 +438,11 @@ public class ChatActivity extends AppCompatActivity {
                     }
 
                     // insert users name and mac address to the database
-                    db.insertUserName(mConnectedDeviceAddress, mConnectedDeviceName);
+                    try {
+                        db.insertUserName(mConnectedDeviceAddress, mConnectedDeviceName);
+                    } catch(Exception e) {
+                        Log.d(TAG, "Unique");
+                    }
 
                     break;
                 case MESSAGE_TOAST:
