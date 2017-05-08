@@ -188,9 +188,9 @@ public class ChatActivity extends AppCompatActivity {
 
     private void loadChatHistory(Intent intent) {
         Log.d(TAG, "Loading chat history");
-        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
-                .getSerializableExtra("USERS-INFO");
 
+        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) intent
+                .getSerializableExtra("USERS-INFO");
         if (usersInfo == null) {
             return;
         }
@@ -202,6 +202,7 @@ public class ChatActivity extends AppCompatActivity {
         List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
 
         String chatHistory = getChatHistory(combinedMessages);
+        Log.d(TAG, "chatHistory: " + chatHistory);
         mConversationArrayAdapter.add(chatHistory);
     }
 
@@ -391,11 +392,6 @@ public class ChatActivity extends AppCompatActivity {
                     switch (msg.arg1) {
                         case BluetoothChatService.STATE_CONNECTED:
                             connectionStatus.setText(getResources().getString(R.string.connected));
-                            try {
-                                mConversationArrayAdapter.clear();
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
                             break;
@@ -444,6 +440,26 @@ public class ChatActivity extends AppCompatActivity {
                     if (null != getApplicationContext()) {
                         Toast.makeText(getApplicationContext(), "Connected to "
                                 + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                    }
+
+                    // Check if user is in DB, if so, retrieve chat history
+                    // else clear screen
+
+                    Log.d(TAG, "Before check if in db");
+                    if (db.isUserInDb(mConnectedDeviceAddress)) {
+                        Log.d(TAG, "User in db");
+                        Intent intent = new Intent();
+                        ArrayList<UserInfo> users = new ArrayList<>();
+                        users.add(new UserInfo(mConnectedDeviceName, mConnectedDeviceAddress));
+                        intent.putExtra("USERS-INFO", users);
+                        loadChatHistory(intent);
+                    } else {
+                        Log.d(TAG, "User not in db");
+                        try {
+                            mConversationArrayAdapter.clear();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
 
                     // insert users name and mac address to the database
