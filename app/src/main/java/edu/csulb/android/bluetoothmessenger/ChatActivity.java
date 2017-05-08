@@ -339,20 +339,17 @@ public class ChatActivity extends AppCompatActivity {
             case REQUEST_CONNECT_DEVICE:
                 // When DeviceListActivity returns with a device to connect
                 if (resultCode == Activity.RESULT_OK) {
-                    connectDevice(data);
+                    String macAddress = data.getExtras()
+                            .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+                    connectDevice(macAddress);
                 }
                 break;
         }
     }
 
-
-    private void connectDevice(Intent data) {
-        // Get the device MAC address
-        String address = data.getExtras()
-                .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
-        // Get the BluetoothDevice object
-        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
-        mConnectedDeviceAddress = address;
+    private void connectDevice(String macAddress) {
+        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(macAddress);
+        mConnectedDeviceAddress = macAddress;
         // Attempt to connect to the device
         mChatService.connect(device);
     }
