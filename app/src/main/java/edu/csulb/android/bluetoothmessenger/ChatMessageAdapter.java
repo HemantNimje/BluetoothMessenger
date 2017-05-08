@@ -14,10 +14,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /**
- * Created by vaibhavjain on 4/17/2017
+ * Created by nisarg on 5/08/2017
  */
 
-public class ChatMessageAdapter extends ArrayAdapter<ChatMessage> {
+public class ChatMessageAdapter extends ArrayAdapter<MessageInstance> {
     private Context ctx;
 
     ChatMessageAdapter(Context ctx, int resource){
@@ -29,7 +29,7 @@ public class ChatMessageAdapter extends ArrayAdapter<ChatMessage> {
     @Override
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
         View view = LayoutInflater.from(ctx).inflate(R.layout.chat_message, null, false);
-        ChatMessage msg = (ChatMessage) getItem(position);
+        MessageInstance msg = (MessageInstance) getItem(position);
 
         TextView messageView = (TextView) view.findViewById(R.id.singleMessage);
         ImageView imageView = (ImageView) view.findViewById(R.id.chat_image);
