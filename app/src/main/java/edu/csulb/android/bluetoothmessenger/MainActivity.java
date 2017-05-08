@@ -110,6 +110,8 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(profileIntent);
                 break;
             case R.id.action_groupchat:
+                Intent groupChatIntent = new Intent(getApplicationContext(),GroupChatDeviceListActivity.class);
+                startActivity(groupChatIntent);
                 break;
         }
 
