@@ -61,13 +61,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position,
                                     long id) {
-                Intent intent = new Intent(MainActivity.this, ChatHistory.class);
-                String userInfo = chatHistoryListView.getItemAtPosition(position).toString();
-                String splitLines[] = userInfo.split("[\\r?\\n]+");
-                String userName = splitLines[0];
-                String macAddress = splitLines[1];
-                intent.putExtra("MAC-ADDRESS", macAddress);
-                intent.putExtra("DEVICE-NAME", userName);
+                Intent intent = new Intent(MainActivity.this, ChatActivity.class);
+                String users = chatHistoryListView.getItemAtPosition(position).toString();
+                ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) UserInfo.getUsersInfo(users);
+                intent.putExtra("USERS-INFO", usersInfo);
                 startActivity(intent);
             }
         });
@@ -78,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        Messages db = new Messages(getApplicationContext());
+        ChatMessages db = new ChatMessages(getApplicationContext());
         previousChatNames = (ArrayList<String>) db.getPreviousChatNames();
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
