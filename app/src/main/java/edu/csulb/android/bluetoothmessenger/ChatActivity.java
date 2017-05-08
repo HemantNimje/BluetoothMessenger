@@ -36,7 +36,9 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.DEVICE_ADDRESS;
 import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
@@ -79,7 +81,9 @@ public class ChatActivity extends AppCompatActivity {
     private EditText mEditText;
     private ImageButton mButtonSend;
     private TextView connectionStatus;
-    private Messages db;
+    private ChatMessages db;
+
+    private final static String TAG = "ChatActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,12 +93,11 @@ public class ChatActivity extends AppCompatActivity {
         init();
 
         if (!mBluetoothAdapter.isEnabled()) {
-            System.out.println("ENTERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
 
         } else if (mChatService == null) {
-            System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            Log.d(TAG, "Setting up chat");
             setupChat();
         }
         // Record to the external cache directory for visibility
@@ -136,7 +139,6 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
-
     }
 
     public void init() {
@@ -155,7 +157,8 @@ public class ChatActivity extends AppCompatActivity {
     public void onResume() {
         super.onResume();
 
-        db = new Messages(getApplicationContext());
+        db = new ChatMessages(getApplicationContext());
+        loadChatHistory(getIntent());
         // Performing this check in onResume() covers the case in which BT was
         // not enabled during onStart(), so we were paused to enable it...
         // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
@@ -168,6 +171,58 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    private void loadChatHistory(Intent intent) {
+        Log.d(TAG, "Loading chat history");
+        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
+                .getSerializableExtra("USERS-INFO");
+
+        if (usersInfo == null) {
+            return;
+        }
+
+        List<ChatMessage> readMessages = getAllMessages(usersInfo, "Received");
+        List<ChatMessage> sentMessages = getAllMessages(usersInfo, "Sent");
+        List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
+
+        String chatHistory = getChatHistory(combinedMessages);
+        mConversationArrayAdapter.add(chatHistory);
+    }
+
+    String getChatHistory(List<ChatMessage> messages) {
+        StringBuilder sb = new StringBuilder();
+
+        for (ChatMessage message : messages) {
+            sb.append(message.user + " (" + message.timeStamp + "): " + message.message + "\n");
+        }
+
+        return sb.toString();
+    }
+
+    List<ChatMessage> getAllMessages(List<UserInfo> usersInfo, String messageType) {
+        List<ChatMessage> messages = new ArrayList<>();
+
+        for (UserInfo info : usersInfo) {
+            String macAddress = info.macAddress;
+            String userName = info.name;
+            List<ChatMessage> readMessages;
+
+            if (messageType.equals("Sent")) {
+                readMessages = db.retrieveSentMessages(macAddress);
+            } else {
+                readMessages = db.retrieveReceivedMessages(macAddress);
+            }
+
+            for (ChatMessage message : readMessages) {
+                if (messageType.equals("Sent")) {
+                    message.user = "Me";
+                } else {
+                    message.user = userName;
+                }
+                messages.add(message);
+            }
+        }
+        return messages;
+    }
 
     @Override
     protected void onStop() {
