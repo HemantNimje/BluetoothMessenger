@@ -95,10 +95,6 @@ public class ChatActivity extends AppCompatActivity {
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-
-        } else if (mChatService == null) {
-            Log.d(TAG, "Setting up chat");
-            setupChat();
         }
         // Record to the external cache directory for visibility
         mFileName = getExternalCacheDir().getAbsolutePath();
@@ -156,7 +152,10 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
-
+        if (mChatService == null) {
+            Log.d(TAG, "Setting up chat");
+            setupChat();
+        }
         db = new ChatMessages(getApplicationContext());
         loadChatHistory(getIntent());
         // Performing this check in onResume() covers the case in which BT was
@@ -258,10 +257,20 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "destroy called");
         super.onDestroy();
         if (mChatService != null) {
             mChatService.stop();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        Log.d(TAG, "back pressed");
+        if (mChatService != null) {
+            mChatService.stop();
+        }
+        finish();
     }
 
     @Override
@@ -449,6 +458,10 @@ public class ChatActivity extends AppCompatActivity {
                     if (null != getApplicationContext()) {
                         Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
                                 Toast.LENGTH_SHORT).show();
+
+                        if (msg.getData().getString(TOAST).equals("Device connection was lost")) {
+                            finish();
+                        }
                     }
                     break;
             }

@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position,
                                     long id) {
-                Intent intent = new Intent(MainActivity.this, ChatActivity.class);
+                Intent intent = new Intent(getApplicationContext(), ChatActivity.class);
                 String users = chatHistoryListView.getItemAtPosition(position).toString();
                 ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) UserInfo.getUsersInfo(users);
                 intent.putExtra("USERS-INFO", usersInfo);
