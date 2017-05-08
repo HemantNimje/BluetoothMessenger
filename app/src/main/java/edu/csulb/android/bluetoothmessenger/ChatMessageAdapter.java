@@ -41,7 +41,7 @@ public class ChatMessageAdapter extends ArrayAdapter<ChatMessage> {
         if(msg.message != null) {
 
             messageView.setText(msg.message);
-//            messageView.setBackgroundResource((msg.send) ? R.drawable.bubble_send : R.drawable.bubble_rec);
+            messageView.setBackgroundResource((msg.send) ? R.drawable.bubble_in : R.drawable.bubble_out);
 //            messageView.setHeight(50);
 //            messageView.setBackgroundColor( (Color.LTGRAY));
             messageView.setTextSize(20);
@@ -54,7 +54,7 @@ public class ChatMessageAdapter extends ArrayAdapter<ChatMessage> {
         } else if(msg.imageBitmap != null) {
             imageView.setImageBitmap(msg.imageBitmap);
             messageView.setBackgroundResource(0);
-//            imageView.setBackgroundResource((msg.send) ? R.drawable.bubble_send : R.drawable.bubble_rec);
+            imageView.setBackgroundResource((msg.send) ? R.drawable.bubble_a : R.drawable.bubble_b);
         } else if(msg.audioFile != null){
             String text = (msg.send) ? "File sent: " : "File Received: ";
             messageView.setText(text +  msg.audioFile.getName());
@@ -63,7 +63,7 @@ public class ChatMessageAdapter extends ArrayAdapter<ChatMessage> {
             params_message.width = 0;
             params_message.height = 0;
             imageView.setLayoutParams(params_message);
-//            messageView.setBackgroundResource((msg.send) ? R.drawable.bubble_send : R.drawable.bubble_rec);
+            messageView.setBackgroundResource((msg.send) ? R.drawable.bubble_in : R.drawable.bubble_out);
         }
         return view;
     }
