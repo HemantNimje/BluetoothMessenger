@@ -29,18 +29,18 @@ import java.util.List;
 // where each Message contains a time and message.
 
 
-class Message {
+class ChatMessage {
     String timeStamp;
     String message;
     String user;
 
-    Message(String time, String message) {
+    ChatMessage(String time, String message) {
         timeStamp = time;
         this.message = message;
     }
 }
 
-class Messages extends SQLiteOpenHelper {
+class ChatMessages extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "BlueToothMessenger";
     private static final int DATABASE_VERSION = 1;
     private static final String RECEIVED_MESSAGES_TABLE = "ReceivedMessages";
@@ -56,7 +56,7 @@ class Messages extends SQLiteOpenHelper {
     private static final String TAG = "Messages";
 
 
-    Messages(Context context) {
+    ChatMessages(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
@@ -122,8 +122,8 @@ class Messages extends SQLiteOpenHelper {
         insertMessage(timeStamp, userId, message, RECEIVED_MESSAGES_TABLE);
     }
 
-    private ArrayList<Message> retrieveMessages(String userId, String tableType) {
-        ArrayList<Message> userMessages = new ArrayList<>();
+    private ArrayList<ChatMessage> retrieveMessages(String userId, String tableType) {
+        ArrayList<ChatMessage> userMessages = new ArrayList<>();
         String select = "SELECT Time, Message FROM " + tableType +
                 " WHERE " + USER_ID + " = '" + userId + "'";
 
@@ -134,7 +134,7 @@ class Messages extends SQLiteOpenHelper {
             do {
                 String date = cursor.getString(0);
                 String message = cursor.getString(1);
-                userMessages.add(new Message(date, message));
+                userMessages.add(new ChatMessage(date, message));
             } while (cursor.moveToNext());
         }
 
@@ -144,11 +144,11 @@ class Messages extends SQLiteOpenHelper {
         return userMessages;
     }
 
-    ArrayList<Message> retrieveReceivedMessages(String userId) {
+    ArrayList<ChatMessage> retrieveReceivedMessages(String userId) {
         return retrieveMessages(userId, RECEIVED_MESSAGES_TABLE);
     }
 
-    ArrayList<Message> retrieveSentMessages(String userId) {
+    ArrayList<ChatMessage> retrieveSentMessages(String userId) {
         return retrieveMessages(userId, SENT_MESSAGES_TABLE);
     }
 
@@ -162,20 +162,21 @@ class Messages extends SQLiteOpenHelper {
     }
 
     // Sorts and combines messages you have sent and received
-    static List<Message> combineMessages(List<Message> readMessages, List<Message> sentMessages) {
-        List<Message> combined = new ArrayList<>();
+    static List<ChatMessage> combineMessages(List<ChatMessage> readMessages,
+                                             List<ChatMessage> sentMessages) {
+        List<ChatMessage> combined = new ArrayList<>();
 
-        for (Message message : readMessages) {
+        for (ChatMessage message : readMessages) {
             combined.add(message);
         }
 
-        for (Message message : sentMessages) {
+        for (ChatMessage message : sentMessages) {
             combined.add(message);
         }
 
-        Collections.sort(combined, new Comparator<Message>() {
+        Collections.sort(combined, new Comparator<ChatMessage>() {
             @Override
-            public int compare(Message message1, Message message2) {
+            public int compare(ChatMessage message1, ChatMessage message2) {
                 return message1.timeStamp.compareTo(message2.timeStamp);
             }
         });
