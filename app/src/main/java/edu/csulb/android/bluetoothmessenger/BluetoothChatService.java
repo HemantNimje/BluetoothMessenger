@@ -233,7 +233,7 @@ public class BluetoothChatService {
             int numOfPackets = 0;
             int datatype = 0;
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            while (!this.isInterrupted()) {
+            while (mState == STATE_CONNECTED) {
                 try {
                     int numOfBytes = mInStream.read(bufferData);
                     byte[] trimmedBufferData = Arrays.copyOf(bufferData, numOfBytes);
@@ -272,6 +272,7 @@ public class BluetoothChatService {
                     }
                 } catch (IOException e) {
                     Log.d(TAG, "Input stream was disconnected", e);
+                    connectionLost();
                     break;
                 }
             }
