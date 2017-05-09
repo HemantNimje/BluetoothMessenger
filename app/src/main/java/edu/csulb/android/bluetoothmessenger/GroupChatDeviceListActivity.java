@@ -76,7 +76,7 @@ public class GroupChatDeviceListActivity extends Activity {
 
                 ArrayList<UserInfo> usersForGroupChat = new ArrayList<>();
                 for (int i = 0; i < selectedDevices.size(); i++) {
-                    Toast.makeText(getApplicationContext(), selectedDevices.get(i).getAddress(), Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getApplicationContext(), selectedDevices.get(i).getAddress(), Toast.LENGTH_SHORT).show();
                     String name = selectedDevices.get(i).getName();
                     String macAddress = selectedDevices.get(i).getAddress();
                     usersForGroupChat.add(new UserInfo(name, macAddress));

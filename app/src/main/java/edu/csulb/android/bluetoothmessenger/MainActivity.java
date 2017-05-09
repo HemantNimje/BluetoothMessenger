@@ -107,7 +107,8 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(profileIntent);
                 break;
             case R.id.action_groupchat:
-                Intent groupChatIntent = new Intent(getApplicationContext(),GroupChatDeviceListActivity.class);
+                Intent groupChatIntent = new Intent(getApplicationContext(),
+                        GroupChatDeviceListActivity.class);
                 startActivity(groupChatIntent);
                 break;
             case R.id.group_chat_make_discoverable:
