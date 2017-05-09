@@ -21,6 +21,7 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import java.util.ArrayList;
 import java.util.Set;
 
@@ -117,7 +118,6 @@ public class GroupChatDeviceListActivity extends Activity {
                     Toast.makeText(getApplicationContext(), R.string.none_found, Toast.LENGTH_SHORT).show();
                 }
             }
-            layout.invalidate();
 
         }
     };
@@ -144,36 +144,46 @@ public class GroupChatDeviceListActivity extends Activity {
             ViewHolder holder = null;
 
             /* View recycling */
-            if (convertView == null) {
-                LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                convertView = inflater.inflate(R.layout.custom_row, null);
+            LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            convertView = inflater.inflate(R.layout.custom_row, null);
 
                 /* Create a viewholder to hold the different elements of single row */
-                holder = new ViewHolder();
-                holder.deviceCheckBox = (CheckBox) convertView.findViewById(R.id.device_checkbox);
-                holder.deviceName = (TextView) convertView.findViewById(R.id.device_name);
-                holder.deviceAddress = (TextView) convertView.findViewById(R.id.device_address);
-                convertView.setTag(holder);
+            holder = new ViewHolder();
+            holder.deviceCheckBox = (CheckBox) convertView.findViewById(R.id.device_checkbox);
+            holder.deviceName = (TextView) convertView.findViewById(R.id.device_name);
+            holder.deviceAddress = (TextView) convertView.findViewById(R.id.device_address);
+            convertView.setTag(holder);
 
-                final ViewHolder finalHolder = holder;
-                convertView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        //Toast.makeText(getApplicationContext(), deviceList.get(position).getAddress(), Toast.LENGTH_SHORT).show();
-                        deviceList.get(position).setSelected(!deviceList.get(position).isSelected());
-                        if (!finalHolder.deviceCheckBox.isChecked()) {
-                            finalHolder.deviceCheckBox.setChecked(true);
-                        } else {
-                            finalHolder.deviceCheckBox.setChecked(false);
-                        }
-                        //boolean checkBoxStatus = deviceList.get(position).isSelected();
-                        //Toast.makeText(getApplicationContext(), " " + checkBoxStatus, Toast.LENGTH_SHORT).show();
+            final ViewHolder finalHolder = holder;
+
+            /* Handle the click of the checkbox */
+            holder.deviceCheckBox.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    deviceList.get(position).setSelected(!deviceList.get(position).isSelected());
+                    if (!finalHolder.deviceCheckBox.isChecked()){
+                        finalHolder.deviceCheckBox.setChecked(true);
+                    }else{
+                        finalHolder.deviceCheckBox.setChecked(false);
                     }
-                });
+                }
+            });
 
-            } else {
-                holder = (ViewHolder) convertView.getTag();
-            }
+            /* Handle the click of the complete view */
+            convertView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //Toast.makeText(getApplicationContext(), deviceList.get(position).getAddress(), Toast.LENGTH_SHORT).show();
+                    deviceList.get(position).setSelected(!deviceList.get(position).isSelected());
+                    if (!finalHolder.deviceCheckBox.isChecked()) {
+                        finalHolder.deviceCheckBox.setChecked(true);
+                    } else {
+                        finalHolder.deviceCheckBox.setChecked(false);
+                    }
+                    //boolean checkBoxStatus = deviceList.get(position).isSelected();
+                    //Toast.makeText(getApplicationContext(), " " + checkBoxStatus, Toast.LENGTH_SHORT).show();
+                }
+            });
 
             Device device = deviceList.get(position);
             holder.deviceName.setText("(" + device.getName() + ")");
