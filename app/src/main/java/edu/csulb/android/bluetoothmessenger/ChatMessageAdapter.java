@@ -55,7 +55,7 @@ public class ChatMessageAdapter extends ArrayAdapter<MessageInstance> {
         } else if(msg.imageBitmap != null) {
             imageView.setImageBitmap(msg.imageBitmap);
             messageView.setBackgroundResource(0);
-            imageView.setBackgroundResource((msg.send) ? R.drawable.bubble_a : R.drawable.bubble_b);
+            imageView.setBackgroundResource((msg.send) ? R.drawable.ic_chat_bubble_out : R.drawable.ic_chat_bubble_outline_black_48dp);
         } else if(msg.audioFile != null){
             String text = (msg.send) ? "File sent: " : "File Received: ";
             messageView.setText(text +  msg.audioFile.getName());

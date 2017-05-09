@@ -22,12 +22,12 @@
             android:paddingLeft="10dp"
             android:paddingEnd="10dp"
             android:paddingRight="10dp"
-            android:text="hi"
             android:textColor="@android:color/primary_text_light" />
 
         <ImageView
             android:id="@+id/chat_image"
             android:layout_width="250dp"
-            android:layout_height="250dp" />
+            android:layout_height="250dp"
+            android:contentDescription="@string/image_message"/>
     </LinearLayout>
 </LinearLayout>
