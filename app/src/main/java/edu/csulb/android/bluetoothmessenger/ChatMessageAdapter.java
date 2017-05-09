@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.Size;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -41,10 +42,10 @@ public class ChatMessageAdapter extends ArrayAdapter<MessageInstance> {
         if(msg.message != null) {
 
             messageView.setText(msg.message);
-            messageView.setBackgroundResource((msg.send) ? R.drawable.bubble_in : R.drawable.bubble_out);
+            messageView.setBackgroundResource((msg.send) ? R.drawable.ic_chat_bubble_out : R.drawable.ic_chat_bubble_outline_black_48dp);
 //            messageView.setHeight(50);
 //            messageView.setBackgroundColor( (Color.LTGRAY));
-            messageView.setTextSize(20);
+            messageView.setTextSize(16);
             LinearLayout.LayoutParams params_message = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             params_message.width = 0;
@@ -63,7 +64,7 @@ public class ChatMessageAdapter extends ArrayAdapter<MessageInstance> {
             params_message.width = 0;
             params_message.height = 0;
             imageView.setLayoutParams(params_message);
-            messageView.setBackgroundResource((msg.send) ? R.drawable.bubble_in : R.drawable.bubble_out);
+            messageView.setBackgroundResource((msg.send) ? R.drawable.ic_chat_bubble_out : R.drawable.ic_chat_bubble_outline_black_48dp);
         }
         return view;
     }

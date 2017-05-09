@@ -15,12 +15,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start"
+            android:gravity="center_vertical|center_horizontal"
             android:layout_margin="5dip"
-
+            android:textSize="16sp"
             android:paddingStart="10dp"
             android:paddingLeft="10dp"
-            android:paddingEnd="0dp"
+            android:paddingEnd="10dp"
             android:paddingRight="10dp"
+            android:text="hi"
             android:textColor="@android:color/primary_text_light" />
 
         <ImageView
