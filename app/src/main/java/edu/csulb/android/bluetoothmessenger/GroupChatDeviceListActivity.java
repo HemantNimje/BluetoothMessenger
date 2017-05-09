@@ -56,6 +56,7 @@ public class GroupChatDeviceListActivity extends Activity {
             }
         }
 
+
         discoverDevices();
 
         deviceListView.setAdapter(mNewDeviceArrayAdapter);
@@ -110,6 +111,7 @@ public class GroupChatDeviceListActivity extends Activity {
 
                 if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
                     deviceList.add(new Device(device.getName(), device.getAddress(), false));
+                    mNewDeviceArrayAdapter.notifyDataSetChanged();
                 }
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 setTitle(R.string.select_device);
@@ -118,6 +120,7 @@ public class GroupChatDeviceListActivity extends Activity {
                 }
             }
             layout.invalidate();
+
 
         }
     };
