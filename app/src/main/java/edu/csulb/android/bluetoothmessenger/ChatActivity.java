@@ -61,6 +61,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private static final int SELECT_IMAGE = 11;
     private static final int MY_PERMISSION_REQUEST_READ_EXTERNAL_STORAGE = 2;
+    private static final int MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 100;
     private String selectedImagePath;
     private ImageView selectedImage;
 
@@ -144,6 +145,7 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE);
 
         final ImageButton btnRecord = (ImageButton) findViewById(R.id.btn_record);
         btnRecord.setOnClickListener(new View.OnClickListener() {
@@ -151,7 +153,11 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onClick(View view) {
+
+
                 onRecord(mStartRecording);
+
+
                 if (mStartRecording) {
                     btnRecord.setImageResource(R.drawable.ic_stop_black_24dp);
                 } else {
@@ -174,6 +180,7 @@ public class ChatActivity extends AppCompatActivity {
             finish();
         }
     }
+
 
     @Override
     public void onResume() {
