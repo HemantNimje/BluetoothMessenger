@@ -109,6 +109,8 @@ public class ChatActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.chat_activity_main);
 
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
         init();
 
         if (!mBluetoothAdapter.isEnabled()) {
