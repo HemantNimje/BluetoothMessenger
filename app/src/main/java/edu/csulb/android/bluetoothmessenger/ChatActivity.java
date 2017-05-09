@@ -198,8 +198,6 @@ public class ChatActivity extends AppCompatActivity {
                 mChatService.start();
             }
         }
-
-       //startPreviousChat();
     }
 
     private void startPreviousChat() {
@@ -222,6 +220,9 @@ public class ChatActivity extends AppCompatActivity {
         ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) intent
                 .getSerializableExtra("USERS-INFO");
         if (usersInfo == null) {
+            return;
+        } else if (usersInfo.size() > 1) {
+            Log.d(TAG, "Group chat");
             return;
         }
 

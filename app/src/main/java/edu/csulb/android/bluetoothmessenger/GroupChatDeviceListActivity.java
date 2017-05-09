@@ -23,6 +23,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class GroupChatDeviceListActivity extends Activity {
@@ -72,9 +73,19 @@ public class GroupChatDeviceListActivity extends Activity {
                         selectedDevices.add(deviceList.get(i));
                     }
                 }
+
+                ArrayList<UserInfo> usersForGroupChat = new ArrayList<>();
                 for (int i = 0; i < selectedDevices.size(); i++) {
                     Toast.makeText(getApplicationContext(), selectedDevices.get(i).getAddress(), Toast.LENGTH_SHORT).show();
+                    String name = selectedDevices.get(i).getName();
+                    String macAddress = selectedDevices.get(i).getAddress();
+                    usersForGroupChat.add(new UserInfo(name, macAddress));
                 }
+
+                Intent startGroupChat = new Intent(getApplicationContext(), ChatActivity.class);
+                startGroupChat.putExtra("USERS-INFO", usersForGroupChat);
+                startActivity(startGroupChat);
+                finish();
             }
         });
 
