@@ -4,13 +4,10 @@ import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
@@ -398,7 +395,7 @@ public class ChatActivity extends AppCompatActivity {
                 break;
 
             case SELECT_IMAGE:
-            if (requestCode == SELECT_IMAGE && resultCode == Activity.RESULT_OK) {
+            if (resultCode == Activity.RESULT_OK) {
                 if (data != null) {
                     try {
                         Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), data.getData());
@@ -416,7 +413,7 @@ public class ChatActivity extends AppCompatActivity {
                 break;
 
             case CAMERA_REQUEST:
-                if (requestCode == CAMERA_REQUEST && resultCode == Activity.RESULT_OK) {
+                if (resultCode == Activity.RESULT_OK) {
                     if (data != null) {
                         Bitmap bitmap = (Bitmap) data.getExtras().get("data");
                         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -587,17 +584,10 @@ public class ChatActivity extends AppCompatActivity {
 
                         String toastMsg = msg.getData().getString(TOAST);
 
-                        if (toastMsg.equals("Unable to connect device")) {
-                            ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
-                                    .getSerializableExtra("USERS-INFO");
-
-                            // User attempts to direct connect but no devices are available
-                            if (usersInfo != null) {
+                        // Insure that we always reset the connection
+                        if (toastMsg.equals("Unable to connect device") ||
+                                toastMsg.equals("Device connection was lost")) {
                                 finish();
-                            }
-                        }
-                        else if (toastMsg.equals("Device connection was lost")) {
-                            finish();
                         }
                     }
                     break;
