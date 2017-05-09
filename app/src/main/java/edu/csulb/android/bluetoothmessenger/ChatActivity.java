@@ -4,13 +4,10 @@ import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
@@ -144,8 +141,11 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE);
+        ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
+        ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE);
 
         final ImageButton btnRecord = (ImageButton) findViewById(R.id.btn_record);
         btnRecord.setOnClickListener(new View.OnClickListener() {
@@ -166,8 +166,6 @@ public class ChatActivity extends AppCompatActivity {
                 mStartRecording = !mStartRecording;
             }
         });
-
-
     }
 
     public void init() {
@@ -180,7 +178,6 @@ public class ChatActivity extends AppCompatActivity {
             finish();
         }
     }
-
 
     @Override
     public void onResume() {
@@ -213,8 +210,8 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-
         for (UserInfo user : usersInfo) {
+            Log.d(TAG, "Connect to" + user.macAddress);
             connectDevice(user.macAddress);
         }
     }
@@ -235,7 +232,6 @@ public class ChatActivity extends AppCompatActivity {
         List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
 
         String chatHistory = getChatHistory(combinedMessages);
-        Log.d(TAG, "chatHistory: " + chatHistory);
         chatMessageAdapter.add(new MessageInstance(true,new String(chatHistory)));;
     }
 
@@ -274,7 +270,6 @@ public class ChatActivity extends AppCompatActivity {
         }
         return messages;
     }
-
 
     @Override
     protected void onStop() {
@@ -324,9 +319,21 @@ public class ChatActivity extends AppCompatActivity {
                 return true;
 
             case R.id.menu_search_devices:
-                Intent bluetoothIntent = new Intent(getApplicationContext(), DeviceListActivity.class);
+                Intent bluetoothIntent = new Intent(getApplicationContext(),
+                        DeviceListActivity.class);
                 startActivityForResult(bluetoothIntent, REQUEST_CONNECT_DEVICE);
                 break;
+
+            case R.id.device_connect_disconnect:
+                ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
+                        .getSerializableExtra("USERS-INFO");
+                if (usersInfo == null) {
+                    Toast.makeText(this, "Direct connection not possible",
+                            Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                startPreviousChat();
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -351,7 +358,8 @@ public class ChatActivity extends AppCompatActivity {
                     Manifest.permission.READ_EXTERNAL_STORAGE)) {
 
                 // Add your explanation for the user here.
-                Toast.makeText(this, "You have declined the permissions. Please allow them first to proceed.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "You have declined the permissions. " +
+                        "Please allow them first to proceed.", Toast.LENGTH_SHORT).show();
             } else {
                 // No explanation needed, we can request the permission
                 ActivityCompat.requestPermissions(this, new String[]
@@ -368,10 +376,9 @@ public class ChatActivity extends AppCompatActivity {
         Intent attachImageIntent = new Intent();
         attachImageIntent.setType("image/*");
         attachImageIntent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(attachImageIntent, "Select Picture"), SELECT_IMAGE);
+        startActivityForResult(Intent.createChooser(attachImageIntent, "Select Picture"),
+                SELECT_IMAGE);
     }
-
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -389,13 +396,15 @@ public class ChatActivity extends AppCompatActivity {
                 break;
 
             case SELECT_IMAGE:
-            if (requestCode == SELECT_IMAGE && resultCode == Activity.RESULT_OK) {
+            if (resultCode == Activity.RESULT_OK) {
                 if (data != null) {
                     try {
-                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), data.getData());
+                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),
+                                data.getData());
                         ByteArrayOutputStream bos = new ByteArrayOutputStream();
                         bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
-                        String encodedImage = Base64.encodeToString(bos.toByteArray(), Base64.DEFAULT);
+                        String encodedImage = Base64.encodeToString(bos.toByteArray(),
+                                Base64.DEFAULT);
                         Log.d(TAG, "Base64 encoded string: " + encodedImage);
 //                        mChatService = new BluetoothChatService(mHandler);
                         mChatService.write(encodedImage.getBytes(), DATATYPE_IMAGE);
@@ -407,12 +416,13 @@ public class ChatActivity extends AppCompatActivity {
                 break;
 
             case CAMERA_REQUEST:
-                if (requestCode == CAMERA_REQUEST && resultCode == Activity.RESULT_OK) {
+                if (resultCode == Activity.RESULT_OK) {
                     if (data != null) {
                         Bitmap bitmap = (Bitmap) data.getExtras().get("data");
                         ByteArrayOutputStream bos = new ByteArrayOutputStream();
                         bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
-                        String encodedImage = Base64.encodeToString(bos.toByteArray(), Base64.DEFAULT);
+                        String encodedImage = Base64.encodeToString(bos.toByteArray(),
+                                Base64.DEFAULT);
                         Log.d(TAG, "Base64 encoded string: " + encodedImage);
                         mChatService.write(encodedImage.getBytes(), DATATYPE_IMAGE);
                     }
@@ -469,7 +479,7 @@ public class ChatActivity extends AppCompatActivity {
                         Calendar calendar = Calendar.getInstance();
                         String time = sdf.format(calendar.getTime());
 
-                        chatMessageAdapter.add(new MessageInstance(true, new String(writeMessage)));
+                        chatMessageAdapter.add(new MessageInstance(true, writeMessage));
                         chatMessageAdapter.notifyDataSetChanged();
                         // Write messages to database
                         // Add mAddress and mConnectedDeviceName to db for future recovery
@@ -503,7 +513,8 @@ public class ChatActivity extends AppCompatActivity {
                         chatMessageAdapter.notifyDataSetChanged();
 
                         // Write messages to db
-                        db.insertReceivedMessage(readTime, mConnectedDeviceAddress, new String(readBuf));
+                        db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
+                                new String(readBuf));
                     }
                     else if (msg.arg2 == 2) {
                         imageBitmap = (Bitmap) msg.obj;
@@ -527,7 +538,8 @@ public class ChatActivity extends AppCompatActivity {
                                 chatMessageAdapter.notifyDataSetChanged();
                             }
                         } catch (Exception e) {
-                            Toast.makeText(ChatActivity.this, "Could not save the file", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ChatActivity.this, "Could not save the file",
+                                    Toast.LENGTH_SHORT).show();
                             Log.e(TAG, "Could not save the file", e);
                         }
                     }
@@ -557,7 +569,7 @@ public class ChatActivity extends AppCompatActivity {
                     } else {
                         Log.d(TAG, "User not in db");
                         try {
-                            mConversationArrayAdapter.clear();
+                            chatMessageAdapter.clear();
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -576,8 +588,12 @@ public class ChatActivity extends AppCompatActivity {
                         Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
                                 Toast.LENGTH_SHORT).show();
 
-                        if (msg.getData().getString(TOAST).equals("Device connection was lost")) {
-                            finish();
+                        String toastMsg = msg.getData().getString(TOAST);
+
+                        // Insure that we always reset the connection
+                        if (toastMsg.equals("Unable to connect device") ||
+                                toastMsg.equals("Device connection was lost")) {
+                                finish();
                         }
                     }
                     break;
@@ -606,11 +622,6 @@ public class ChatActivity extends AppCompatActivity {
 
 
     private void setupChat() {
-        // Initialize the array adapter for the conversation thread
-        mConversationArrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
-
-//        mConversationView.setAdapter(mConversationArrayAdapter);
-
         // Initialize the compose field with a listener for the return key
         mEditText.setOnEditorActionListener(mWriteListener);
 
@@ -634,7 +645,8 @@ public class ChatActivity extends AppCompatActivity {
     private void sendMessage(String message) {
         // Check that we're actually connected before trying anything
         if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
-            Toast.makeText(getApplicationContext(), R.string.not_connected, Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), R.string.not_connected,
+                    Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -677,7 +689,8 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         switch (requestCode) {
             case MY_PERMISSION_REQUEST_READ_EXTERNAL_STORAGE: {
                 // If request is cancelled, the result arrays are empty.
@@ -687,7 +700,8 @@ public class ChatActivity extends AppCompatActivity {
                     requestImageFromGallery();
                 } else {
                     // Permission is denied.
-                    Toast.makeText(this, "Can't Proceed. You rejected the permission.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Can't Proceed. You rejected the permission.",
+                            Toast.LENGTH_SHORT).show();
                 }
             }
             break;
@@ -702,7 +716,8 @@ public class ChatActivity extends AppCompatActivity {
         File appFolder = new File(filepath, "ChatApp");
         if(!appFolder.exists()) {
             if(!appFolder.mkdirs()) {
-                Toast.makeText(this, "Could not create App folder. Any activity requiring storage is suspended", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Could not create App folder. Any activity requiring storage is suspended",
+                        Toast.LENGTH_LONG).show();
                 return null;
             }
         }
