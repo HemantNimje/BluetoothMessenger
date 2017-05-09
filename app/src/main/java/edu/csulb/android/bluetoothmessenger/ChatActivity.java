@@ -213,8 +213,8 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-
         for (UserInfo user : usersInfo) {
+            Log.d(TAG, "Connect to" + user.macAddress);
             connectDevice(user.macAddress);
         }
     }
@@ -235,7 +235,6 @@ public class ChatActivity extends AppCompatActivity {
         List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
 
         String chatHistory = getChatHistory(combinedMessages);
-        Log.d(TAG, "chatHistory: " + chatHistory);
         chatMessageAdapter.add(new MessageInstance(true,new String(chatHistory)));;
     }
 
@@ -327,6 +326,16 @@ public class ChatActivity extends AppCompatActivity {
                 Intent bluetoothIntent = new Intent(getApplicationContext(), DeviceListActivity.class);
                 startActivityForResult(bluetoothIntent, REQUEST_CONNECT_DEVICE);
                 break;
+
+            case R.id.device_connect_disconnect:
+                ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
+                        .getSerializableExtra("USERS-INFO");
+                if (usersInfo == null) {
+                    Toast.makeText(this, "Direct connection not possible", Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                startPreviousChat();
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -576,7 +585,18 @@ public class ChatActivity extends AppCompatActivity {
                         Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
                                 Toast.LENGTH_SHORT).show();
 
-                        if (msg.getData().getString(TOAST).equals("Device connection was lost")) {
+                        String toastMsg = msg.getData().getString(TOAST);
+
+                        if (toastMsg.equals("Unable to connect device")) {
+                            ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
+                                    .getSerializableExtra("USERS-INFO");
+
+                            // User attempts to direct connect but no devices are available
+                            if (usersInfo != null) {
+                                finish();
+                            }
+                        }
+                        else if (toastMsg.equals("Device connection was lost")) {
                             finish();
                         }
                     }
