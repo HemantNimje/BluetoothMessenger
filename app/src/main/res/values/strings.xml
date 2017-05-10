@@ -57,4 +57,8 @@
     <string name="device_address">Device Address</string>
     <string name="full_screen_image">Full Screen Image</string>
     <string name="image_message">Image message</string>
+    <string name="mac_address_hint">Please enter your mac address here</string>
+    <string name="mac_address">Mac Address</string>
+    <string name="name">Name</string>
+    <string name="user_profile_pic">User Profile Pic</string>
 </resources>

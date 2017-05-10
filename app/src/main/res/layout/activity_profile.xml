@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="56dp"
         android:gravity="center_vertical"
         android:orientation="vertical">
 
@@ -17,29 +15,65 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:contentDescription="@string/user_profile_pic"
             android:src="@drawable/ic_person_black_24dp" />
+
+        <TextView
+            android:id="@+id/title_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#E0E0E0"
+            android:padding="8dp"
+            android:paddingEnd="16dp"
+            android:paddingStart="16dp"
+            android:text="@string/name"
+            android:textAllCaps="true"
+            android:textColor="@color/colorPrimary"
+            android:textSize="16sp" />
 
         <EditText
             android:id="@+id/profile_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/name_hint"
-            android:isScrollContainer="true"
             android:maxLines="1"
-            android:padding="16dp" />
+            android:padding="16dp"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/title_mac_address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#E0E0E0"
+            android:padding="8dp"
+            android:paddingEnd="16dp"
+            android:paddingStart="16dp"
+            android:text="@string/mac_address"
+            android:textAllCaps="true"
+            android:textColor="@color/colorPrimary"
+            android:textSize="16sp" />
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/mac_address_hint"
+            android:maxLines="1"
+            android:padding="16dp"
+            android:singleLine="true" />
 
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
         android:padding="8dp">
 
         <Button
             android:id="@+id/button_cancel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginRight="4dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
             android:text="@string/cancel" />
 
@@ -47,10 +81,10 @@
             android:id="@+id/button_save"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="4dp"
+            android:layout_marginStart="4dp"
             android:layout_weight="1"
             android:text="@string/save" />
 
     </LinearLayout>
 
-</LinearLayout>
+</RelativeLayout>
