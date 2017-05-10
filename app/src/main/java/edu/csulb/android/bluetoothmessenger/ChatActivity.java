@@ -267,7 +267,7 @@ public class ChatActivity extends AppCompatActivity {
         /* Set the title of the chat to the user with whom chat is done */
         if (!isGroupChat) {
             setTitle(receivedFrom);
-        }else{
+        } else {
             setTitle("Group Chat");
         }
     }
@@ -494,6 +494,13 @@ public class ChatActivity extends AppCompatActivity {
                     switch (msg.arg1) {
                         case BluetoothChatService.STATE_CONNECTED:
                             connectionStatus.setText(getResources().getString(R.string.connected));
+
+                            /* Set title of the chat once connection is established */
+                            if (!isGroupChat) {
+                                setTitle(mConnectedDeviceName);
+                            }else {
+                                setTitle("Group Chat");
+                            }
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
                             break;
