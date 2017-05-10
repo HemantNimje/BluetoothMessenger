@@ -230,7 +230,6 @@ public class ChatActivity extends AppCompatActivity {
             return;
         } else if (isGroupChat) {
             Log.d(TAG, "Group chat");
-            //startGroupChat(usersInfo);
             return;
         }
 
@@ -241,16 +240,7 @@ public class ChatActivity extends AppCompatActivity {
         List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
 
         String chatHistory = getChatHistory(combinedMessages);
-        chatMessageAdapter.add(new MessageInstance(true,new String(chatHistory)));;
-    }
-
-    public void startGroupChat(ArrayList<UserInfo> users) {
-        if (groupChatManager == null) {
-            groupChatManager = new GroupChat(users, mHandler);
-            isGroupChat = true;
-        }
-        //isGroupChat = true;
-        Log.d(TAG, "Group chat turned on");
+        chatMessageAdapter.add(new MessageInstance(true, chatHistory));;
     }
 
 
@@ -314,8 +304,6 @@ public class ChatActivity extends AppCompatActivity {
         if (groupChatManager != null) {
             groupChatManager.stop();
         }
-        users = null;
-        isGroupChat = false;
     }
 
     @Override
@@ -477,16 +465,6 @@ public class ChatActivity extends AppCompatActivity {
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("y-MM-dd HH:mm:ss");
 
-//    Handler groupChatReadHandler = new Handler() {
-//        @Override
-//        public void handleMessage(Message msg) {
-//            switch (msg.what) {
-//                case MESSAGE_READ:
-//
-//            }
-//        }
-//    }
-
     String prevSendTime = null;
 
     Handler mHandler = new Handler() {
@@ -635,11 +613,7 @@ public class ChatActivity extends AppCompatActivity {
                     }
 
                     // insert users name and mac address to the database
-                    try {
-                        db.insertUserName(mConnectedDeviceAddress, mConnectedDeviceName);
-                    } catch(Exception e) {
-                        Log.d(TAG, "Unique");
-                    }
+                    db.insertUserName(mConnectedDeviceAddress, mConnectedDeviceName);
 
                     break;
                 case MESSAGE_TOAST:
@@ -653,7 +627,8 @@ public class ChatActivity extends AppCompatActivity {
                         if (toastMsg.equals("Unable to connect device") ||
                                 toastMsg.equals("Device connection was lost")) {
                             Log.d(TAG, "Lost connection: " + toastMsg);
-                                finish();
+                            onBackPressed();
+
                         }
                     }
                     break;

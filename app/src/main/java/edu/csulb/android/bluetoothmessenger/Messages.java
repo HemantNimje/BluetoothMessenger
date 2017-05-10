@@ -3,6 +3,7 @@ package edu.csulb.android.bluetoothmessenger;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
@@ -101,7 +102,11 @@ class ChatMessages extends SQLiteOpenHelper {
         insertValues.put(TIME_STAMP, timeStamp);
         insertValues.put(USER_ID, userId);
         insertValues.put(MESSAGE, message);
-        db.insert(tableType, null, insertValues);
+        try {
+            db.insert(tableType, null, insertValues);
+        } catch (SQLiteConstraintException e) {
+            Log.e(TAG, "Error inserting messages");
+        }
         db.close();
     }
 
@@ -110,7 +115,11 @@ class ChatMessages extends SQLiteOpenHelper {
         ContentValues insertValues = new ContentValues();
         insertValues.put(USER_NAME, userName);
         insertValues.put(USER_ID, macAddress);
-        db.insert(USER_NAMES_TABLE, null, insertValues);
+        try {
+            db.insert(USER_NAMES_TABLE, null, insertValues);
+        } catch (SQLiteConstraintException e) {
+            Log.e(TAG, "Error inserting data");
+        }
         db.close();
     }
 
