@@ -89,6 +89,7 @@
         </RelativeLayout>
 
         <EditText
+            android:id="@+id/profile_mac_address"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/mac_address_hint"
@@ -110,6 +111,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="4dp"
             android:layout_weight="1"
+            android:onClick="CancelProfile"
             android:text="@string/cancel" />
 
         <Button
@@ -118,6 +120,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
             android:layout_weight="1"
+            android:onClick="SaveInfo"
             android:text="@string/save" />
 
     </LinearLayout>

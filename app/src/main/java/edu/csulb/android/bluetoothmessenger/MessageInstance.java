@@ -13,6 +13,16 @@ public class MessageInstance {
     public String message;
     public Bitmap imageBitmap;
     public File audioFile;
+    public String MacAddress;
+
+
+    public MessageInstance(boolean side, String message, String macAddress) {
+        this.send = side;
+        this.message = message;
+        MacAddress = macAddress;
+        imageBitmap = null;
+        audioFile = null;
+    }
 
     public MessageInstance(boolean side, String message) {
         this.send = side;

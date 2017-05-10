@@ -14,6 +14,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import static edu.csulb.android.bluetoothmessenger.ProfileActivity.mac_add;
+
 /**
  * Created by nisarg on 5/08/2017
  */
@@ -39,9 +41,11 @@ public class ChatMessageAdapter extends ArrayAdapter<MessageInstance> {
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         params.gravity = (msg.send ? Gravity.END : Gravity.START);
         layout.setLayoutParams(params);
+
+
         if(msg.message != null) {
 
-            messageView.setText(msg.message);
+            messageView.setText(mac_add + ":" + "\n" + msg.message);
             messageView.setBackgroundResource((msg.send) ? R.drawable.ic_chat_bubble_out : R.drawable.ic_chat_bubble_outline_black_48dp);
 //            messageView.setHeight(50);
 //            messageView.setBackgroundColor( (Color.LTGRAY));

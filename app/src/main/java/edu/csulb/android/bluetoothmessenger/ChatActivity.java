@@ -3,6 +3,7 @@ package edu.csulb.android.bluetoothmessenger;
 import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -48,6 +49,7 @@ import java.util.List;
 import static android.os.Environment.getExternalStorageDirectory;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.DEVICE_ADDRESS;
 import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
+import static edu.csulb.android.bluetoothmessenger.ProfileActivity.mac_add;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -450,7 +452,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("y-MM-dd HH:mm:ss");
 
-    Handler mHandler = new Handler() {
+    public Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             //FragmentActivity activity = getActivity();
@@ -479,6 +481,9 @@ public class ChatActivity extends AppCompatActivity {
                         String writeMessage = new String(writeBuf);
                         Calendar calendar = Calendar.getInstance();
                         String time = sdf.format(calendar.getTime());
+
+                        String mac_address = mBluetoothAdapter.getAddress();
+                        System.out.println("MAC ADDRESS: "+mac_address);
 
                         chatMessageAdapter.add(new MessageInstance(true, writeMessage));
                         chatMessageAdapter.notifyDataSetChanged();
@@ -509,6 +514,7 @@ public class ChatActivity extends AppCompatActivity {
                         Calendar cal = Calendar.getInstance();
                         String readTime = sdf.format(cal.getTime());
 
+                        Device device;
 
                         chatMessageAdapter.add(new MessageInstance(false, new String(readBuf)));
                         chatMessageAdapter.notifyDataSetChanged();
@@ -551,6 +557,7 @@ public class ChatActivity extends AppCompatActivity {
                     // save the connected device's name
                     mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
                     mConnectedDeviceAddress = msg.getData().getString(DEVICE_ADDRESS);
+
                     if (null != getApplicationContext()) {
                         Toast.makeText(getApplicationContext(), "Connected to "
                                 + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
