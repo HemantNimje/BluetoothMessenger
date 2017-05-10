@@ -301,8 +301,6 @@ public class ChatActivity extends AppCompatActivity {
             mPlayer.release();
             mPlayer = null;
         }
-
-        isGroupChat = false;
     }
 
     @Override
@@ -317,6 +315,7 @@ public class ChatActivity extends AppCompatActivity {
             groupChatManager.stop();
         }
         users = null;
+        isGroupChat = false;
     }
 
     @Override
@@ -521,6 +520,8 @@ public class ChatActivity extends AppCompatActivity {
                         String time = sdf.format(calendar.getTime());
 
                         // If there is a group chat, you will not send multiple times
+                        // sometimes back to back messages have the same time
+                        // maybe use milliseconds to break ties
                         if (prevSendTime == null) {
                             prevSendTime = time;
                         } else if (prevSendTime.equals(time)) {
@@ -599,6 +600,7 @@ public class ChatActivity extends AppCompatActivity {
                     // save the connected device's name
                     mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
                     mConnectedDeviceAddress = msg.getData().getString(DEVICE_ADDRESS);
+                    String deviceAddress = msg.getData().getString(DEVICE_ADDRESS);
                     if (null != getApplicationContext()) {
                         Toast.makeText(getApplicationContext(), "Connected to "
                                 + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
@@ -610,7 +612,9 @@ public class ChatActivity extends AppCompatActivity {
                     Log.d(TAG, "Before check if in db");
 
                     if (isGroupChat) {
+                        groupChatManager.setConnectionAsTrue(deviceAddress);
                         Log.d(TAG, "Group chat is on" + isGroupChat);
+                        Log.d(TAG, "Users size:" + users.size());
                         break;
                     }
 
@@ -648,6 +652,7 @@ public class ChatActivity extends AppCompatActivity {
                         // Insure that we always reset the connection
                         if (toastMsg.equals("Unable to connect device") ||
                                 toastMsg.equals("Device connection was lost")) {
+                            Log.d(TAG, "Lost connection: " + toastMsg);
                                 finish();
                         }
                     }
