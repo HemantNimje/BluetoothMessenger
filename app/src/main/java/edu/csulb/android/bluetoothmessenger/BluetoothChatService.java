@@ -235,6 +235,8 @@ public class BluetoothChatService {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             while (mState == STATE_CONNECTED) {
                 try {
+                    Log.d(TAG, "Device address + name:" + mSocket.getRemoteDevice().getAddress()
+                    + " " + mSocket.getRemoteDevice().getName());
                     int numOfBytes = mInStream.read(bufferData);
                     byte[] trimmedBufferData = Arrays.copyOf(bufferData, numOfBytes);
                     bufferData = new byte[16384];
