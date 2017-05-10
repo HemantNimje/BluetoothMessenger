@@ -45,7 +45,7 @@ public class ChatMessageAdapter extends ArrayAdapter<MessageInstance> {
 
         if(msg.message != null) {
 
-            messageView.setText(mac_add + ":" + "\n" + msg.message);
+            messageView.setText(msg.message);
             messageView.setBackgroundResource((msg.send) ? R.drawable.ic_chat_bubble_out : R.drawable.ic_chat_bubble_outline_black_48dp);
 //            messageView.setHeight(50);
 //            messageView.setBackgroundColor( (Color.LTGRAY));
