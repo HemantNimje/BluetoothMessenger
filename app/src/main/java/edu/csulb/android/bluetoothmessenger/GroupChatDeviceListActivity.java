@@ -177,9 +177,10 @@ public class GroupChatDeviceListActivity extends Activity {
                     deviceList.get(position).setSelected(!deviceList.get(position).isSelected());
                     if (!finalHolder.deviceCheckBox.isChecked()){
                         finalHolder.deviceCheckBox.setChecked(true);
-                    }else{
+                    }else {
                         finalHolder.deviceCheckBox.setChecked(false);
                     }
+                    mNewDeviceArrayAdapter.notifyDataSetChanged();
                 }
             });
 
@@ -196,6 +197,8 @@ public class GroupChatDeviceListActivity extends Activity {
                     }
                     //boolean checkBoxStatus = deviceList.get(position).isSelected();
                     //Toast.makeText(getApplicationContext(), " " + checkBoxStatus, Toast.LENGTH_SHORT).show();
+                    mNewDeviceArrayAdapter.notifyDataSetChanged();
+
                 }
             });
 
