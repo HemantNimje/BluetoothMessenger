@@ -6,10 +6,6 @@ import android.os.Parcelable;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by Andrew on 5/7/2017.
- */
-
 public class UserInfo implements Parcelable {
     String name;
     String macAddress;
@@ -58,5 +54,12 @@ public class UserInfo implements Parcelable {
         }
 
         return usersInfo;
+    }
+
+    public String getName(){
+        return name;
+    }
+    public String getMacAddress(){
+        return macAddress;
     }
 }

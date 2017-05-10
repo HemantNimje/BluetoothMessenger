@@ -264,9 +264,13 @@ public class ChatActivity extends AppCompatActivity {
             chatMessageAdapter.notifyDataSetChanged();
         }
 
+        setChatTitle(users.get(0).getName());
+    }
+
+    public void setChatTitle(String deviceName){
         /* Set the title of the chat to the user with whom chat is done */
         if (!isGroupChat) {
-            setTitle(receivedFrom);
+            setTitle(deviceName);
         } else {
             setTitle("Group Chat");
         }
@@ -494,13 +498,6 @@ public class ChatActivity extends AppCompatActivity {
                     switch (msg.arg1) {
                         case BluetoothChatService.STATE_CONNECTED:
                             connectionStatus.setText(getResources().getString(R.string.connected));
-
-                            /* Set title of the chat once connection is established */
-                            if (!isGroupChat) {
-                                setTitle(mConnectedDeviceName);
-                            }else {
-                                setTitle("Group Chat");
-                            }
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
                             break;
@@ -607,6 +604,7 @@ public class ChatActivity extends AppCompatActivity {
                                 + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     }
 
+                    setChatTitle(mConnectedDeviceName);
                     // Check if user is in DB, if so, retrieve chat history
                     // else clear screen
 
