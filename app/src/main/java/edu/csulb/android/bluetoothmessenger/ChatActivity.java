@@ -146,7 +146,7 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 MessageInstance msg = (MessageInstance) parent.getItemAtPosition(position);
-                if(msg.audioFile != null) {
+                if (msg.audioFile != null) {
                     mPlayer = MediaPlayer.create(ChatActivity.this, Uri.fromFile(msg.audioFile));
                     mPlayer.start();
                 }
@@ -156,7 +156,7 @@ public class ChatActivity extends AppCompatActivity {
         ActivityCompat.requestPermissions(this, new String[]{
                 Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
         ActivityCompat.requestPermissions(this, new String[]{
-                Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE},
                 MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE);
 
         final ImageButton btnRecord = (ImageButton) findViewById(R.id.btn_record);
@@ -226,6 +226,9 @@ public class ChatActivity extends AppCompatActivity {
     private void loadChatHistory(Intent intent) {
         Log.d(TAG, "Loading chat history");
 
+        users = (ArrayList<UserInfo>) intent
+                .getSerializableExtra("USERS-INFO");
+
         if (users == null) {
             return;
         } else if (isGroupChat) {
@@ -239,19 +242,21 @@ public class ChatActivity extends AppCompatActivity {
         List<ChatMessage> sentMessages = getAllMessages(users, "Sent");
         List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
 
-        String chatHistory = getChatHistory(combinedMessages);
-        chatMessageAdapter.add(new MessageInstance(true, chatHistory));;
+        showChatHistory(combinedMessages);
     }
 
 
-    String getChatHistory(List<ChatMessage> messages) {
-        StringBuilder sb = new StringBuilder();
-
+    void showChatHistory(List<ChatMessage> messages) {
         for (ChatMessage message : messages) {
-            sb.append(message.user + " (" + message.timeStamp + "): " + message.message + "\n");
+            if (message.user.equals("Me")) {
+                chatMessageAdapter.add(new MessageInstance(true,
+                        message.user + ": " + message.message + "\n (" + message.timeStamp + ")"));
+            } else {
+                chatMessageAdapter.add(new MessageInstance(false,
+                        message.user + ": " + message.message + "\n (" + message.timeStamp + ")"));
+            }
+            chatMessageAdapter.notifyDataSetChanged();
         }
-
-        return sb.toString();
     }
 
     List<ChatMessage> getAllMessages(List<UserInfo> usersInfo, String messageType) {
@@ -412,23 +417,23 @@ public class ChatActivity extends AppCompatActivity {
                 break;
 
             case SELECT_IMAGE:
-            if (resultCode == Activity.RESULT_OK) {
-                if (data != null) {
-                    try {
-                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),
-                                data.getData());
-                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
-                        String encodedImage = Base64.encodeToString(bos.toByteArray(),
-                                Base64.DEFAULT);
-                        Log.d(TAG, "Base64 encoded string: " + encodedImage);
+                if (resultCode == Activity.RESULT_OK) {
+                    if (data != null) {
+                        try {
+                            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),
+                                    data.getData());
+                            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
+                            String encodedImage = Base64.encodeToString(bos.toByteArray(),
+                                    Base64.DEFAULT);
+                            Log.d(TAG, "Base64 encoded string: " + encodedImage);
 //                        mChatService = new BluetoothChatService(mHandler);
-                        mChatService.write(encodedImage.getBytes(), DATATYPE_IMAGE);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                            mChatService.write(encodedImage.getBytes(), DATATYPE_IMAGE);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
-            }
                 break;
 
             case CAMERA_REQUEST:
@@ -513,8 +518,7 @@ public class ChatActivity extends AppCompatActivity {
                         // Write messages to database
                         // Add mAddress and mConnectedDeviceName to db for future recovery
                         db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage);
-                    }
-                    else if (msg.arg2 == 2) {
+                    } else if (msg.arg2 == 2) {
                         System.out.println("IIINSIIIDEE IMAGE");
                         imageBitmap = (Bitmap) msg.obj;
                         if (imageBitmap != null) {
@@ -543,8 +547,7 @@ public class ChatActivity extends AppCompatActivity {
                         // Write messages to db
                         db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
                                 new String(readBuf));
-                    }
-                    else if (msg.arg2 == 2) {
+                    } else if (msg.arg2 == 2) {
                         imageBitmap = (Bitmap) msg.obj;
                         if (imageBitmap != null) {
                             chatMessageAdapter.add(new MessageInstance(false, imageBitmap));
@@ -628,7 +631,6 @@ public class ChatActivity extends AppCompatActivity {
                                 toastMsg.equals("Device connection was lost")) {
                             Log.d(TAG, "Lost connection: " + toastMsg);
                             onBackPressed();
-
                         }
                     }
                     break;
@@ -697,11 +699,11 @@ public class ChatActivity extends AppCompatActivity {
         // Check that there's actually something to send
         if (message.length() > 0) {
 
-            System.out.println("Message Length = "+message.length());
+            System.out.println("Message Length = " + message.length());
             // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
 //            mChatService.write(send);
-            mChatService.write(message.getBytes(),DATATYPE_TEXT);
+            mChatService.write(message.getBytes(), DATATYPE_TEXT);
 
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
@@ -776,11 +778,11 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    private String getFilename(){
+    private String getFilename() {
         String filepath = getExternalStorageDirectory().getPath();
         File appFolder = new File(filepath, "ChatApp");
-        if(!appFolder.exists()) {
-            if(!appFolder.mkdirs()) {
+        if (!appFolder.exists()) {
+            if (!appFolder.mkdirs()) {
                 Toast.makeText(this, "Could not create App folder. Any activity requiring storage is suspended",
                         Toast.LENGTH_LONG).show();
                 return null;
@@ -826,20 +828,20 @@ public class ChatActivity extends AppCompatActivity {
     * */
     private void stopRecording() {
         Toast.makeText(this, "Recording Stopped", Toast.LENGTH_SHORT).show();
-        if(null != mRecorder){
+        if (null != mRecorder) {
             mRecorder.stop();
             mRecorder.reset();
             mRecorder.release();
             mRecorder = null;
-            if(mChatService != null) {
+            if (mChatService != null) {
                 try {
                     File f = new File(fileName);
                     FileInputStream fis = new FileInputStream(fileName);
-                    byte[] buff = new byte[(int)f.length()];
+                    byte[] buff = new byte[(int) f.length()];
                     fis.read(buff);
                     mChatService.write(buff, DATATYPE_FILE);
                     fis.close();
-                } catch(Exception e) {
+                } catch (Exception e) {
                     Log.e(TAG, "Could not open stream to save data", e);
                 }
             }
