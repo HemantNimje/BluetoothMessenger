@@ -3,7 +3,6 @@ package edu.csulb.android.bluetoothmessenger;
 import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -49,7 +48,6 @@ import java.util.List;
 import static android.os.Environment.getExternalStorageDirectory;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.DEVICE_ADDRESS;
 import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
-import static edu.csulb.android.bluetoothmessenger.ProfileActivity.mac_add;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -101,6 +99,10 @@ public class ChatActivity extends AppCompatActivity {
     private ImageView fullscreen;
 
     private ChatMessages db;
+    private GroupChat groupChatManager = null;
+    private boolean isGroupChat = false;
+
+    private ArrayList<UserInfo> users;
 
     private final static String TAG = "ChatActivity";
 
@@ -111,6 +113,16 @@ public class ChatActivity extends AppCompatActivity {
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
+        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
+                .getSerializableExtra("USERS-INFO");
+
+        users = usersInfo;
+
+        if (usersInfo != null && usersInfo.size() > 1) {
+            isGroupChat = true;
+        }
+
+        Log.d(TAG, "Group chat is:" + isGroupChat);
         init();
 
         if (!mBluetoothAdapter.isEnabled()) {
@@ -118,10 +130,8 @@ public class ChatActivity extends AppCompatActivity {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
 
-        } else if (mChatService == null) {
-
+        } else if (mChatService == null || groupChatManager == null) {
             setupChat();
-
         }
         // Record to the external cache directory for visibility
         mFileName = getExternalCacheDir().getAbsolutePath();
@@ -136,7 +146,7 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 MessageInstance msg = (MessageInstance) parent.getItemAtPosition(position);
-                if(msg.audioFile != null) {
+                if (msg.audioFile != null) {
                     mPlayer = MediaPlayer.create(ChatActivity.this, Uri.fromFile(msg.audioFile));
                     mPlayer.start();
                 }
@@ -146,7 +156,7 @@ public class ChatActivity extends AppCompatActivity {
         ActivityCompat.requestPermissions(this, new String[]{
                 Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
         ActivityCompat.requestPermissions(this, new String[]{
-                Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE},
                 MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE);
 
         final ImageButton btnRecord = (ImageButton) findViewById(R.id.btn_record);
@@ -184,10 +194,7 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
-        if (mChatService == null) {
-            Log.d(TAG, "Setting up chat");
-            setupChat();
-        }
+
         db = new ChatMessages(getApplicationContext());
         loadChatHistory(getIntent());
         // Performing this check in onResume() covers the case in which BT was
@@ -203,15 +210,15 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void startPreviousChat() {
-        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
-                .getSerializableExtra("USERS-INFO");
-
-        if (usersInfo == null) {
+        if (users == null) {
+            return;
+        } else if (isGroupChat) {
+            groupChatManager.startConnection();
             return;
         }
 
-        for (UserInfo user : usersInfo) {
-            Log.d(TAG, "Connect to" + user.macAddress);
+        for (UserInfo user : users) {
+            Log.d(TAG, "Connect to " + user.macAddress);
             connectDevice(user.macAddress);
         }
     }
@@ -219,33 +226,37 @@ public class ChatActivity extends AppCompatActivity {
     private void loadChatHistory(Intent intent) {
         Log.d(TAG, "Loading chat history");
 
-        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) intent
+        users = (ArrayList<UserInfo>) intent
                 .getSerializableExtra("USERS-INFO");
-        if (usersInfo == null) {
+
+        if (users == null) {
             return;
-        } else if (usersInfo.size() > 1) {
+        } else if (isGroupChat) {
             Log.d(TAG, "Group chat");
             return;
         }
 
         chatMessageAdapter.clear();
 
-        List<ChatMessage> readMessages = getAllMessages(usersInfo, "Received");
-        List<ChatMessage> sentMessages = getAllMessages(usersInfo, "Sent");
+        List<ChatMessage> readMessages = getAllMessages(users, "Received");
+        List<ChatMessage> sentMessages = getAllMessages(users, "Sent");
         List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
 
-        String chatHistory = getChatHistory(combinedMessages);
-        chatMessageAdapter.add(new MessageInstance(true,new String(chatHistory)));;
+        showChatHistory(combinedMessages);
     }
 
-    String getChatHistory(List<ChatMessage> messages) {
-        StringBuilder sb = new StringBuilder();
 
+    void showChatHistory(List<ChatMessage> messages) {
         for (ChatMessage message : messages) {
-            sb.append(message.user + " (" + message.timeStamp + "): " + message.message + "\n");
+            if (message.user.equals("Me")) {
+                chatMessageAdapter.add(new MessageInstance(true,
+                        message.user + ": " + message.message + "\n (" + message.timeStamp + ")"));
+            } else {
+                chatMessageAdapter.add(new MessageInstance(false,
+                        message.user + ": " + message.message + "\n (" + message.timeStamp + ")"));
+            }
+            chatMessageAdapter.notifyDataSetChanged();
         }
-
-        return sb.toString();
     }
 
     List<ChatMessage> getAllMessages(List<UserInfo> usersInfo, String messageType) {
@@ -291,8 +302,12 @@ public class ChatActivity extends AppCompatActivity {
     public void onDestroy() {
         Log.d(TAG, "destroy called");
         super.onDestroy();
+
         if (mChatService != null) {
             mChatService.stop();
+        }
+        if (groupChatManager != null) {
+            groupChatManager.stop();
         }
     }
 
@@ -300,11 +315,15 @@ public class ChatActivity extends AppCompatActivity {
     public void onBackPressed() {
         Log.d(TAG, "back pressed");
 
+        if (groupChatManager != null) {
+            groupChatManager.stop();
+        }
+
         if (mChatService != null) {
             mChatService.stop();
         }
+        users = null;
         finish();
-
     }
 
     @Override
@@ -328,9 +347,8 @@ public class ChatActivity extends AppCompatActivity {
                 break;
 
             case R.id.device_connect_disconnect:
-                ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
-                        .getSerializableExtra("USERS-INFO");
-                if (usersInfo == null) {
+                Log.d(TAG, "Trying to direct connect");
+                if (users == null) {
                     Toast.makeText(this, "Direct connection not possible",
                             Toast.LENGTH_SHORT).show();
                     return false;
@@ -399,23 +417,23 @@ public class ChatActivity extends AppCompatActivity {
                 break;
 
             case SELECT_IMAGE:
-            if (resultCode == Activity.RESULT_OK) {
-                if (data != null) {
-                    try {
-                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),
-                                data.getData());
-                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
-                        String encodedImage = Base64.encodeToString(bos.toByteArray(),
-                                Base64.DEFAULT);
-                        Log.d(TAG, "Base64 encoded string: " + encodedImage);
+                if (resultCode == Activity.RESULT_OK) {
+                    if (data != null) {
+                        try {
+                            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),
+                                    data.getData());
+                            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
+                            String encodedImage = Base64.encodeToString(bos.toByteArray(),
+                                    Base64.DEFAULT);
+                            Log.d(TAG, "Base64 encoded string: " + encodedImage);
 //                        mChatService = new BluetoothChatService(mHandler);
-                        mChatService.write(encodedImage.getBytes(), DATATYPE_IMAGE);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                            mChatService.write(encodedImage.getBytes(), DATATYPE_IMAGE);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
-            }
                 break;
 
             case CAMERA_REQUEST:
@@ -452,7 +470,9 @@ public class ChatActivity extends AppCompatActivity {
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("y-MM-dd HH:mm:ss");
 
-    public Handler mHandler = new Handler() {
+    String prevSendTime = null;
+
+    Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             //FragmentActivity activity = getActivity();
@@ -482,16 +502,23 @@ public class ChatActivity extends AppCompatActivity {
                         Calendar calendar = Calendar.getInstance();
                         String time = sdf.format(calendar.getTime());
 
-                        String mac_address = mBluetoothAdapter.getAddress();
-                        System.out.println("MAC ADDRESS: "+mac_address);
+                        // If there is a group chat, you will not send multiple times
+                        // sometimes back to back messages have the same time
+                        // maybe use milliseconds to break ties
+                        if (prevSendTime == null) {
+                            prevSendTime = time;
+                        } else if (prevSendTime.equals(time)) {
+                            Log.d(TAG, "Time equal, msg not repeated");
+                            break;
+                        }
+                        prevSendTime = time;
 
                         chatMessageAdapter.add(new MessageInstance(true, writeMessage));
                         chatMessageAdapter.notifyDataSetChanged();
                         // Write messages to database
                         // Add mAddress and mConnectedDeviceName to db for future recovery
                         db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage);
-                    }
-                    else if (msg.arg2 == 2) {
+                    } else if (msg.arg2 == 2) {
                         System.out.println("IIINSIIIDEE IMAGE");
                         imageBitmap = (Bitmap) msg.obj;
                         if (imageBitmap != null) {
@@ -514,16 +541,13 @@ public class ChatActivity extends AppCompatActivity {
                         Calendar cal = Calendar.getInstance();
                         String readTime = sdf.format(cal.getTime());
 
-                        Device device;
-
                         chatMessageAdapter.add(new MessageInstance(false, new String(readBuf)));
                         chatMessageAdapter.notifyDataSetChanged();
 
                         // Write messages to db
                         db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
                                 new String(readBuf));
-                    }
-                    else if (msg.arg2 == 2) {
+                    } else if (msg.arg2 == 2) {
                         imageBitmap = (Bitmap) msg.obj;
                         if (imageBitmap != null) {
                             chatMessageAdapter.add(new MessageInstance(false, imageBitmap));
@@ -557,7 +581,7 @@ public class ChatActivity extends AppCompatActivity {
                     // save the connected device's name
                     mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
                     mConnectedDeviceAddress = msg.getData().getString(DEVICE_ADDRESS);
-
+                    String deviceAddress = msg.getData().getString(DEVICE_ADDRESS);
                     if (null != getApplicationContext()) {
                         Toast.makeText(getApplicationContext(), "Connected to "
                                 + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
@@ -567,6 +591,14 @@ public class ChatActivity extends AppCompatActivity {
                     // else clear screen
 
                     Log.d(TAG, "Before check if in db");
+
+                    if (isGroupChat) {
+                        groupChatManager.setConnectionAsTrue(deviceAddress);
+                        Log.d(TAG, "Group chat is on" + isGroupChat);
+                        Log.d(TAG, "Users size:" + users.size());
+                        break;
+                    }
+
                     if (db.isUserInDb(mConnectedDeviceAddress)) {
                         Log.d(TAG, "User in db");
                         Intent intent = new Intent();
@@ -584,11 +616,7 @@ public class ChatActivity extends AppCompatActivity {
                     }
 
                     // insert users name and mac address to the database
-                    try {
-                        db.insertUserName(mConnectedDeviceAddress, mConnectedDeviceName);
-                    } catch(Exception e) {
-                        Log.d(TAG, "Unique");
-                    }
+                    db.insertUserName(mConnectedDeviceAddress, mConnectedDeviceName);
 
                     break;
                 case MESSAGE_TOAST:
@@ -601,7 +629,8 @@ public class ChatActivity extends AppCompatActivity {
                         // Insure that we always reset the connection
                         if (toastMsg.equals("Unable to connect device") ||
                                 toastMsg.equals("Device connection was lost")) {
-                                finish();
+                            Log.d(TAG, "Lost connection: " + toastMsg);
+                            onBackPressed();
                         }
                     }
                     break;
@@ -639,13 +668,22 @@ public class ChatActivity extends AppCompatActivity {
                 // Send a message using content of the edit text widget
 
                 String message = mEditText.getText().toString();
-                sendMessage(message);
+                if (isGroupChat) {
+                    sendGroupMessage(message);
+                } else {
+                    sendMessage(message);
+                }
             }
         });
 
         // Initialize the BluetoothChatService to perform bluetooth connections
-        mChatService = new BluetoothChatService(mHandler);
-
+        if (isGroupChat) {
+            Log.d(TAG, "setting up group chat");
+            groupChatManager = new GroupChat(users, mHandler);
+        } else {
+            Log.d(TAG, "setting up single chat");
+            mChatService = new BluetoothChatService(mHandler);
+        }
         // Initialize the buffer for outgoing messages
         mOutStringBuffer = new StringBuffer("");
     }
@@ -661,12 +699,27 @@ public class ChatActivity extends AppCompatActivity {
         // Check that there's actually something to send
         if (message.length() > 0) {
 
-            System.out.println("Message Length = "+message.length());
+            System.out.println("Message Length = " + message.length());
             // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
 //            mChatService.write(send);
-            mChatService.write(message.getBytes(),DATATYPE_TEXT);
+            mChatService.write(message.getBytes(), DATATYPE_TEXT);
 
+            // Reset out string buffer to zero and clear the edit text field
+            mOutStringBuffer.setLength(0);
+            mEditText.setText(mOutStringBuffer);
+        }
+    }
+
+    private void sendGroupMessage(String message) {
+        if (!groupChatManager.areAllDevicesConnected()) {
+            Toast.makeText(getApplicationContext(), R.string.not_all_connected,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (message.length() > 0) {
+            groupChatManager.sendTextMessage(message.getBytes());
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
             mEditText.setText(mOutStringBuffer);
@@ -682,7 +735,13 @@ public class ChatActivity extends AppCompatActivity {
             // If the action is a key-up event on the return key, send the message
             if (actionId == EditorInfo.IME_NULL && event.getAction() == KeyEvent.ACTION_UP) {
                 String message = view.getText().toString();
-                sendMessage(message);
+
+                if (isGroupChat) {
+                    sendGroupMessage(message);
+                } else {
+                    sendMessage(message);
+                }
+
             }
             return true;
         }
@@ -719,11 +778,11 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    private String getFilename(){
+    private String getFilename() {
         String filepath = getExternalStorageDirectory().getPath();
         File appFolder = new File(filepath, "ChatApp");
-        if(!appFolder.exists()) {
-            if(!appFolder.mkdirs()) {
+        if (!appFolder.exists()) {
+            if (!appFolder.mkdirs()) {
                 Toast.makeText(this, "Could not create App folder. Any activity requiring storage is suspended",
                         Toast.LENGTH_LONG).show();
                 return null;
@@ -769,20 +828,20 @@ public class ChatActivity extends AppCompatActivity {
     * */
     private void stopRecording() {
         Toast.makeText(this, "Recording Stopped", Toast.LENGTH_SHORT).show();
-        if(null != mRecorder){
+        if (null != mRecorder) {
             mRecorder.stop();
             mRecorder.reset();
             mRecorder.release();
             mRecorder = null;
-            if(mChatService != null) {
+            if (mChatService != null) {
                 try {
                     File f = new File(fileName);
                     FileInputStream fis = new FileInputStream(fileName);
-                    byte[] buff = new byte[(int)f.length()];
+                    byte[] buff = new byte[(int) f.length()];
                     fis.read(buff);
                     mChatService.write(buff, DATATYPE_FILE);
                     fis.close();
-                } catch(Exception e) {
+                } catch (Exception e) {
                     Log.e(TAG, "Could not open stream to save data", e);
                 }
             }

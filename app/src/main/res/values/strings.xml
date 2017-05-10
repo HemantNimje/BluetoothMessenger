@@ -43,6 +43,7 @@
     <string name="none_found">No devices found</string>
     <string name="make_discoverable">Make Discoverable</string>
     <string name="not_connected">Not connected to any device</string>
+    <string name="not_all_connected">Not connected to all devices in group chat</string>
     <string name="title_connecting">connecting&#8230;</string>
     <string name="title_connected_to">connected to <xliff:g id="device_name">%1$s</xliff:g></string>
     <string name="title_not_connected">not connected</string>
