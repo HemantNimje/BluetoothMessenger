@@ -99,6 +99,10 @@ public class ChatActivity extends AppCompatActivity {
     private ImageView fullscreen;
 
     private ChatMessages db;
+    private GroupChat groupChatManager = null;
+    private boolean isGroupChat = false;
+
+    private ArrayList<UserInfo> users;
 
     private final static String TAG = "ChatActivity";
 
@@ -109,6 +113,16 @@ public class ChatActivity extends AppCompatActivity {
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
+        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
+                .getSerializableExtra("USERS-INFO");
+
+        users = usersInfo;
+
+        if (usersInfo != null && usersInfo.size() > 1) {
+            isGroupChat = true;
+        }
+
+        Log.d(TAG, "Group chat is:" + isGroupChat);
         init();
 
         if (!mBluetoothAdapter.isEnabled()) {
@@ -116,10 +130,8 @@ public class ChatActivity extends AppCompatActivity {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
 
-        } else if (mChatService == null) {
-
+        } else if (mChatService == null || groupChatManager == null) {
             setupChat();
-
         }
         // Record to the external cache directory for visibility
         mFileName = getExternalCacheDir().getAbsolutePath();
@@ -182,10 +194,7 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
-        if (mChatService == null) {
-            Log.d(TAG, "Setting up chat");
-            setupChat();
-        }
+
         db = new ChatMessages(getApplicationContext());
         loadChatHistory(getIntent());
         // Performing this check in onResume() covers the case in which BT was
@@ -201,15 +210,15 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void startPreviousChat() {
-        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
-                .getSerializableExtra("USERS-INFO");
-
-        if (usersInfo == null) {
+        if (users == null) {
+            return;
+        } else if (isGroupChat) {
+            groupChatManager.startConnection();
             return;
         }
 
-        for (UserInfo user : usersInfo) {
-            Log.d(TAG, "Connect to" + user.macAddress);
+        for (UserInfo user : users) {
+            Log.d(TAG, "Connect to " + user.macAddress);
             connectDevice(user.macAddress);
         }
     }
@@ -217,24 +226,33 @@ public class ChatActivity extends AppCompatActivity {
     private void loadChatHistory(Intent intent) {
         Log.d(TAG, "Loading chat history");
 
-        ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) intent
-                .getSerializableExtra("USERS-INFO");
-        if (usersInfo == null) {
+        if (users == null) {
             return;
-        } else if (usersInfo.size() > 1) {
+        } else if (isGroupChat) {
             Log.d(TAG, "Group chat");
+            //startGroupChat(usersInfo);
             return;
         }
 
         chatMessageAdapter.clear();
 
-        List<ChatMessage> readMessages = getAllMessages(usersInfo, "Received");
-        List<ChatMessage> sentMessages = getAllMessages(usersInfo, "Sent");
+        List<ChatMessage> readMessages = getAllMessages(users, "Received");
+        List<ChatMessage> sentMessages = getAllMessages(users, "Sent");
         List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
 
         String chatHistory = getChatHistory(combinedMessages);
         chatMessageAdapter.add(new MessageInstance(true,new String(chatHistory)));;
     }
+
+    public void startGroupChat(ArrayList<UserInfo> users) {
+        if (groupChatManager == null) {
+            groupChatManager = new GroupChat(users, mHandler);
+            isGroupChat = true;
+        }
+        //isGroupChat = true;
+        Log.d(TAG, "Group chat turned on");
+    }
+
 
     String getChatHistory(List<ChatMessage> messages) {
         StringBuilder sb = new StringBuilder();
@@ -283,26 +301,37 @@ public class ChatActivity extends AppCompatActivity {
             mPlayer.release();
             mPlayer = null;
         }
+
+        isGroupChat = false;
     }
 
     @Override
     public void onDestroy() {
         Log.d(TAG, "destroy called");
         super.onDestroy();
+
         if (mChatService != null) {
             mChatService.stop();
         }
+        if (groupChatManager != null) {
+            groupChatManager.stop();
+        }
+        users = null;
     }
 
     @Override
     public void onBackPressed() {
         Log.d(TAG, "back pressed");
 
+        if (groupChatManager != null) {
+            groupChatManager.stop();
+        }
+
         if (mChatService != null) {
             mChatService.stop();
         }
+        users = null;
         finish();
-
     }
 
     @Override
@@ -326,9 +355,8 @@ public class ChatActivity extends AppCompatActivity {
                 break;
 
             case R.id.device_connect_disconnect:
-                ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
-                        .getSerializableExtra("USERS-INFO");
-                if (usersInfo == null) {
+                Log.d(TAG, "Trying to direct connect");
+                if (users == null) {
                     Toast.makeText(this, "Direct connection not possible",
                             Toast.LENGTH_SHORT).show();
                     return false;
@@ -450,6 +478,18 @@ public class ChatActivity extends AppCompatActivity {
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("y-MM-dd HH:mm:ss");
 
+//    Handler groupChatReadHandler = new Handler() {
+//        @Override
+//        public void handleMessage(Message msg) {
+//            switch (msg.what) {
+//                case MESSAGE_READ:
+//
+//            }
+//        }
+//    }
+
+    String prevSendTime = null;
+
     Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -480,6 +520,15 @@ public class ChatActivity extends AppCompatActivity {
                         Calendar calendar = Calendar.getInstance();
                         String time = sdf.format(calendar.getTime());
 
+                        // If there is a group chat, you will not send multiple times
+                        if (prevSendTime == null) {
+                            prevSendTime = time;
+                        } else if (prevSendTime.equals(time)) {
+                            Log.d(TAG, "Time equal, msg not repeated");
+                            break;
+                        }
+                        prevSendTime = time;
+
                         chatMessageAdapter.add(new MessageInstance(true, writeMessage));
                         chatMessageAdapter.notifyDataSetChanged();
                         // Write messages to database
@@ -508,7 +557,6 @@ public class ChatActivity extends AppCompatActivity {
                         // construct a string from the valid bytes in the buffer
                         Calendar cal = Calendar.getInstance();
                         String readTime = sdf.format(cal.getTime());
-
 
                         chatMessageAdapter.add(new MessageInstance(false, new String(readBuf)));
                         chatMessageAdapter.notifyDataSetChanged();
@@ -560,6 +608,12 @@ public class ChatActivity extends AppCompatActivity {
                     // else clear screen
 
                     Log.d(TAG, "Before check if in db");
+
+                    if (isGroupChat) {
+                        Log.d(TAG, "Group chat is on" + isGroupChat);
+                        break;
+                    }
+
                     if (db.isUserInDb(mConnectedDeviceAddress)) {
                         Log.d(TAG, "User in db");
                         Intent intent = new Intent();
@@ -632,13 +686,22 @@ public class ChatActivity extends AppCompatActivity {
                 // Send a message using content of the edit text widget
 
                 String message = mEditText.getText().toString();
-                sendMessage(message);
+                if (isGroupChat) {
+                    sendGroupMessage(message);
+                } else {
+                    sendMessage(message);
+                }
             }
         });
 
         // Initialize the BluetoothChatService to perform bluetooth connections
-        mChatService = new BluetoothChatService(mHandler);
-
+        if (isGroupChat) {
+            Log.d(TAG, "setting up group chat");
+            groupChatManager = new GroupChat(users, mHandler);
+        } else {
+            Log.d(TAG, "setting up single chat");
+            mChatService = new BluetoothChatService(mHandler);
+        }
         // Initialize the buffer for outgoing messages
         mOutStringBuffer = new StringBuffer("");
     }
@@ -666,6 +729,21 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    private void sendGroupMessage(String message) {
+        if (!groupChatManager.areAllDevicesConnected()) {
+            Toast.makeText(getApplicationContext(), R.string.not_all_connected,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (message.length() > 0) {
+            groupChatManager.sendTextMessage(message.getBytes());
+            // Reset out string buffer to zero and clear the edit text field
+            mOutStringBuffer.setLength(0);
+            mEditText.setText(mOutStringBuffer);
+        }
+    }
+
     /**
      * The action listener for the EditText widget, to listen for the return key
      */
@@ -675,7 +753,13 @@ public class ChatActivity extends AppCompatActivity {
             // If the action is a key-up event on the return key, send the message
             if (actionId == EditorInfo.IME_NULL && event.getAction() == KeyEvent.ACTION_UP) {
                 String message = view.getText().toString();
-                sendMessage(message);
+
+                if (isGroupChat) {
+                    sendGroupMessage(message);
+                } else {
+                    sendMessage(message);
+                }
+
             }
             return true;
         }

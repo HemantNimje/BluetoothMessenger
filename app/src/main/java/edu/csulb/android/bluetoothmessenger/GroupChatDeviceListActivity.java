@@ -11,6 +11,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,6 +35,7 @@ public class GroupChatDeviceListActivity extends Activity {
     ArrayList<Device> deviceList = new ArrayList<>();
     private ListView deviceListView;
     private LinearLayout layout;
+    private static final String TAG = "GroupChatList";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -58,7 +60,6 @@ public class GroupChatDeviceListActivity extends Activity {
             }
         }
 
-
         discoverDevices();
 
         deviceListView.setAdapter(mNewDeviceArrayAdapter);
@@ -77,6 +78,7 @@ public class GroupChatDeviceListActivity extends Activity {
                 ArrayList<UserInfo> usersForGroupChat = new ArrayList<>();
                 for (int i = 0; i < selectedDevices.size(); i++) {
                     //Toast.makeText(getApplicationContext(), selectedDevices.get(i).getAddress(), Toast.LENGTH_SHORT).show();
+                    Log.d(TAG, "Checkboxes get: " + selectedDevices.get(i).getName());
                     String name = selectedDevices.get(i).getName();
                     String macAddress = selectedDevices.get(i).getAddress();
                     usersForGroupChat.add(new UserInfo(name, macAddress));
@@ -131,8 +133,6 @@ public class GroupChatDeviceListActivity extends Activity {
                     Toast.makeText(getApplicationContext(), R.string.none_found, Toast.LENGTH_SHORT).show();
                 }
             }
-
-
         }
     };
 
