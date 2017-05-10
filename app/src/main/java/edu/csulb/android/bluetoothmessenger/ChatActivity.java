@@ -247,6 +247,7 @@ public class ChatActivity extends AppCompatActivity {
 
 
     void showChatHistory(List<ChatMessage> messages) {
+        String receivedFrom = null;
         for (ChatMessage message : messages) {
             if (message.user.equals("Me")) {
                 chatMessageAdapter.add(new MessageInstance(true,
@@ -254,8 +255,20 @@ public class ChatActivity extends AppCompatActivity {
             } else {
                 chatMessageAdapter.add(new MessageInstance(false,
                         message.user + ": " + message.message + "\n (" + message.timeStamp + ")"));
+
+                /* Save the user name of the other device here provided that its not group chat */
+                if (receivedFrom == null && !isGroupChat) {
+                    receivedFrom = message.user;
+                }
             }
             chatMessageAdapter.notifyDataSetChanged();
+        }
+
+        /* Set the title of the chat to the user with whom chat is done */
+        if (!isGroupChat) {
+            setTitle(receivedFrom);
+        }else{
+            setTitle("Group Chat");
         }
     }
 
