@@ -6,12 +6,16 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.Bitmap;
 import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
 // Every device has two databases.  One that records your sent messages.
 // And another that records the messages sent to you.
@@ -34,11 +38,21 @@ class ChatMessage {
     String timeStamp;
     String message;
     String user;
+    Bitmap image;
+    int dataType;
 
     ChatMessage(String time, String message) {
         timeStamp = time;
         this.message = message;
+        dataType = DATA_TEXT;
     }
+
+    ChatMessage(String time, Bitmap image) {
+        timeStamp = time;
+        this.image = image;
+        dataType = DATA_IMAGE;
+    }
+
 }
 
 class ChatMessages extends SQLiteOpenHelper {
@@ -55,6 +69,8 @@ class ChatMessages extends SQLiteOpenHelper {
     private static final String MESSAGE = "Message";
     private static final String USER_NAME = "UserName";
     private static final String GROUP_ID = "GroupId";
+    private static final String DATA_TYPE = "DataType";
+    private static final String IMAGE = "Image";
 
     private static final String TAG = "Messages";
 
@@ -64,9 +80,13 @@ class ChatMessages extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        final String MESSAGES_COLUMNS = " (" + TIME_STAMP + " TEXT,"
-                + USER_ID + " TEXT," + MESSAGE + " TEXT,"
-                + "PRIMARY KEY (" + TIME_STAMP + ", "
+        final String MESSAGES_COLUMNS = " ("
+                + TIME_STAMP + " TEXT,"
+                + USER_ID + " TEXT,"
+                + MESSAGE + " TEXT,"
+                + IMAGE + " BLOB,"
+                + "PRIMARY KEY ("
+                + TIME_STAMP + ", "
                 + USER_ID + ") )";
 
         final String CREATE_RECEIVED_MESSAGES_TABLE = "CREATE TABLE "
@@ -105,12 +125,20 @@ class ChatMessages extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    private void insertMessage(String timeStamp, String userId, String message, String tableType) {
+    private void insertMessage(String timeStamp, String userId, Object message, String tableType,
+                               int dataType) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues insertValues = new ContentValues();
         insertValues.put(TIME_STAMP, timeStamp);
         insertValues.put(USER_ID, userId);
-        insertValues.put(MESSAGE, message);
+
+        if (dataType == DATA_TEXT) {
+            insertValues.put(MESSAGE, (String)message);
+        }
+        else if (dataType == DATA_IMAGE) {
+            insertValues.put(IMAGE, (byte []) message);
+        }
+
         try {
             db.insert(tableType, null, insertValues);
         } catch (SQLiteConstraintException e) {
@@ -145,12 +173,12 @@ class ChatMessages extends SQLiteOpenHelper {
         db.close();
     }
 
-    void insertSentMessage(String timeStamp, String userId, String message) {
-        insertMessage(timeStamp, userId, message, SENT_MESSAGES_TABLE);
+    void insertSentMessage(String timeStamp, String userId, String message, int dataType) {
+        insertMessage(timeStamp, userId, message, SENT_MESSAGES_TABLE, dataType);
     }
 
-    void insertReceivedMessage(String timeStamp, String userId, String message) {
-        insertMessage(timeStamp, userId, message, RECEIVED_MESSAGES_TABLE);
+    void insertReceivedMessage(String timeStamp, String userId, String message, int dataType) {
+        insertMessage(timeStamp, userId, message, RECEIVED_MESSAGES_TABLE, dataType);
     }
 
     boolean isUserInDb(String macAddress) {

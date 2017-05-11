@@ -284,7 +284,6 @@ public class BluetoothChatService {
                                 Log.d(TAG, "Reading image from socket");
                                 String decodedString = new String(bos.toByteArray(),
                                         Charset.defaultCharset());
-                                //Log.d(TAG, "Image Base64 decoded string: " + decodedString);
                                 byte[] decodedStringArray = Base64.decode(decodedString, Base64.DEFAULT);
                                 Bitmap bp = BitmapFactory.decodeByteArray(decodedStringArray,
                                         0, decodedStringArray.length);

@@ -249,7 +249,6 @@ public class ChatActivity extends AppCompatActivity {
         showChatHistory(combinedMessages);
     }
 
-
     void showChatHistory(List<ChatMessage> messages) {
         String receivedFrom = null;
         for (ChatMessage message : messages) {
@@ -541,7 +540,7 @@ public class ChatActivity extends AppCompatActivity {
                     if (isGroupChat) {
                         // fill in logic for groupchat db
                     } else {
-                        db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage);
+                        db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage, DATA_TEXT);
                     }
 
                     String writeDisplayMessage = "Me: " + writeMessage + "\n"
@@ -633,14 +632,13 @@ public class ChatActivity extends AppCompatActivity {
 
                     // modify this for group chat
                     db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
-                            message);
+                            message, DATA_TEXT);
 
                     String displayMessage = msgTextData.getUserName() + ": " + message + "\n"
                             + "(" + readTime + ")";
 
                     chatMessageAdapter.add(new MessageInstance(false, displayMessage));
                     chatMessageAdapter.notifyDataSetChanged();
-
 
                     Log.d(TAG, "Text was read from " + msgTextData.getUserName() + ": "
                             + msgTextData.getMacAddress());
