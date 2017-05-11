@@ -18,6 +18,9 @@ import android.widget.ListView;
 import java.util.ArrayList;
 import java.util.List;
 
+import static edu.csulb.android.bluetoothmessenger.ChatMessages.GROUP_CHAT_USER_TABLE;
+import static edu.csulb.android.bluetoothmessenger.ChatMessages.USER_NAMES_TABLE;
+
 public class MainActivity extends AppCompatActivity {
 
     private ListView chatHistoryListView;
@@ -76,7 +79,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         ChatMessages db = new ChatMessages(getApplicationContext());
-        previousChatNames = (ArrayList<String>) db.getPreviousChatNames();
+        previousChatNames = (ArrayList<String>) db.getPreviousChatNames(USER_NAMES_TABLE);
+
+        ArrayList<String> previousGroupChatNames = (ArrayList<String>) db
+                .getPreviousChatNames(GROUP_CHAT_USER_TABLE);
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, previousChatNames);

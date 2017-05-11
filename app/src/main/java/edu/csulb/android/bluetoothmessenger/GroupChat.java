@@ -25,6 +25,7 @@ public class GroupChat {
     List<UserInfo> userNames;
     HashMap<String, Boolean> deviceConnections;
     String groupId = "";
+    String groupUserNames = "";
     private final static String TAG = "GroupChat";
 
     GroupChat(List<UserInfo> users, Handler handler) {
@@ -34,6 +35,7 @@ public class GroupChat {
             BluetoothChatService chatService = new BluetoothChatService(handler);
             deviceConnections.put(user.macAddress, false);
             groupId += user.macAddress + "\n";
+            groupUserNames += user.name + "\n";
 
             if (chatService.getState() == BluetoothChatService.STATE_NONE) {
                 chatService.start();
@@ -103,4 +105,5 @@ public class GroupChat {
     public String getGroupId() {
         return groupId;
     }
+    public String getGroupUserNames() {return groupUserNames;}
 }

@@ -46,16 +46,17 @@ class ChatMessages extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 1;
     private static final String RECEIVED_MESSAGES_TABLE = "ReceivedMessages";
     private static final String SENT_MESSAGES_TABLE = "SentMessages";
-    private static final String USER_NAMES_TABLE = "UserNames";
+    static final String USER_NAMES_TABLE = "UserNames";
+    static final String GROUP_CHAT_USER_TABLE = "GroupChatUserNames";
 
     //Columns
     private static final String TIME_STAMP = "Time";
     private static final String USER_ID = "User";
     private static final String MESSAGE = "Message";
     private static final String USER_NAME = "UserName";
+    private static final String GROUP_ID = "GroupId";
 
     private static final String TAG = "Messages";
-
 
     ChatMessages(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -80,19 +81,27 @@ class ChatMessages extends SQLiteOpenHelper {
         final String CREATE_USER_NAMES_TABLE = "CREATE TABLE " +
                 USER_NAMES_TABLE + USERS_COLUMNS;
 
+        final String CREATE_GROUP_CHAT_USER_TABLE = "CREATE TABLE " +
+                GROUP_CHAT_USER_TABLE + USERS_COLUMNS;
+
+
         Log.i(TAG, CREATE_RECEIVED_MESSAGES_TABLE);
         Log.i(TAG, CREATE_SENT_MESSAGES_TABLE);
         Log.d(TAG, CREATE_USER_NAMES_TABLE);
+        Log.d(TAG, CREATE_GROUP_CHAT_USER_TABLE);
 
         db.execSQL(CREATE_RECEIVED_MESSAGES_TABLE);
         db.execSQL(CREATE_SENT_MESSAGES_TABLE);
         db.execSQL(CREATE_USER_NAMES_TABLE);
+        db.execSQL(CREATE_GROUP_CHAT_USER_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS " + RECEIVED_MESSAGES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + SENT_MESSAGES_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + USER_NAMES_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + GROUP_CHAT_USER_TABLE);
         onCreate(db);
     }
 
@@ -119,6 +128,19 @@ class ChatMessages extends SQLiteOpenHelper {
             db.insert(USER_NAMES_TABLE, null, insertValues);
         } catch (SQLiteConstraintException e) {
             Log.e(TAG, "Error inserting data");
+        }
+        db.close();
+    }
+
+    void insertGroupName(String GroupId, String GroupUserNames) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues insertValues = new ContentValues();
+        insertValues.put(USER_NAME, GroupUserNames);
+        insertValues.put(USER_ID, GroupId);
+        try {
+            db.insert(GROUP_CHAT_USER_TABLE, null, insertValues);
+        } catch (SQLiteConstraintException e) {
+            Log.e(TAG, "Error inserting data into GroupTable");
         }
         db.close();
     }
@@ -212,9 +234,9 @@ class ChatMessages extends SQLiteOpenHelper {
     }
 
     // Returns user names and mac addresses
-    List<String> getPreviousChatNames() {
+    List<String> getPreviousChatNames(String tableName) {
         List<String> userNames = new ArrayList<>();
-        String select = "SELECT " + USER_ID + ", " + USER_NAME + " FROM " + USER_NAMES_TABLE;
+        String select = "SELECT " + USER_ID + ", " + USER_NAME + " FROM " + tableName;
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery(select, null);
 

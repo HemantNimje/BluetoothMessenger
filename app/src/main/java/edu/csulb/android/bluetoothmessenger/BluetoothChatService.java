@@ -422,7 +422,6 @@ public class BluetoothChatService {
         BluetoothChatService.this.start();
     }
 
-
     /**
      * Start the ConnectThread to initiate a connection to a remote device.
      *
