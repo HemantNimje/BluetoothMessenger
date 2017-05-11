@@ -592,6 +592,8 @@ public class ChatActivity extends AppCompatActivity {
 
                     if (isGroupChat) {
                         // fill in logic for groupchat db
+                        db.insertSentGroupMessage(time, groupChatManager.getGroupId(), writeMessage,
+                                DATA_TEXT, groupChatManager.getGroupId());
                     } else {
                         db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage, DATA_TEXT);
                     }
@@ -712,10 +714,11 @@ public class ChatActivity extends AppCompatActivity {
                     String readTime = sdf.format(cal.getTime());
 
                     String message = new String(readBuf);
-
+                    connectedMacAddress = msgTextData.getMacAddress();
                     // modify this for group chat
                     if (isGroupChat) {
-
+                        db.insertReceivedGroupMessage(readTime, connectedMacAddress, message,
+                                DATA_TEXT, groupChatManager.getGroupId());
                     } else {
                         db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
                                 message, DATA_TEXT);

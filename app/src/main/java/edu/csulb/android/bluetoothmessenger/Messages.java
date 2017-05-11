@@ -97,6 +97,7 @@ class ChatMessages extends SQLiteOpenHelper {
                 + MESSAGE + " TEXT,"
                 + IMAGE + " BLOB,"
                 + AUDIO + " TEXT,"
+                + GROUP_ID + " TEXT,"
                 + "PRIMARY KEY ("
                 + TIME_STAMP + ", "
                 + USER_ID + ") )";
@@ -115,7 +116,6 @@ class ChatMessages extends SQLiteOpenHelper {
 
         final String CREATE_GROUP_CHAT_USER_TABLE = "CREATE TABLE " +
                 GROUP_CHAT_USER_TABLE + USERS_COLUMNS;
-
 
         Log.d(TAG, CREATE_RECEIVED_MESSAGES_TABLE);
         Log.d(TAG, CREATE_SENT_MESSAGES_TABLE);
@@ -138,7 +138,7 @@ class ChatMessages extends SQLiteOpenHelper {
     }
 
     private void insertMessage(String timeStamp, String userId, Object message, String tableType,
-                               int dataType) {
+                               int dataType, String groupId) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues insertValues = new ContentValues();
         insertValues.put(TIME_STAMP, timeStamp);
@@ -149,8 +149,13 @@ class ChatMessages extends SQLiteOpenHelper {
         }
         else if (dataType == DATA_IMAGE) {
             insertValues.put(IMAGE, (byte []) message);
-        } else if (dataType == DATA_AUDIO) {
+        }
+        else if (dataType == DATA_AUDIO) {
             insertValues.put(AUDIO, message.toString());
+        }
+
+        if (groupId != null) {
+            insertValues.put(GROUP_ID, groupId);
         }
 
         try {
@@ -190,11 +195,23 @@ class ChatMessages extends SQLiteOpenHelper {
     }
 
     void insertSentMessage(String timeStamp, String userId, Object message, int dataType) {
-        insertMessage(timeStamp, userId, message, SENT_MESSAGES_TABLE, dataType);
+        insertMessage(timeStamp, userId, message, SENT_MESSAGES_TABLE, dataType, null);
     }
 
     void insertReceivedMessage(String timeStamp, String userId, Object message, int dataType) {
-        insertMessage(timeStamp, userId, message, RECEIVED_MESSAGES_TABLE, dataType);
+        insertMessage(timeStamp, userId, message, RECEIVED_MESSAGES_TABLE, dataType, null);
+    }
+
+    void insertSentGroupMessage(String timeStamp, String userId, Object message, int dataType,
+                                String groupId) {
+        insertMessage(timeStamp, userId, message, SENT_MESSAGES_TABLE, dataType, groupId);
+        Log.d(TAG, "Inserting sent group message");
+    }
+
+    void insertReceivedGroupMessage(String timeStamp, String userId, Object message, int dataType,
+                                    String groupId) {
+        insertMessage(timeStamp, userId, message, RECEIVED_MESSAGES_TABLE, dataType, groupId);
+        Log.d(TAG, "Inserting received group message");
     }
 
     boolean isUserInDb(String macAddress, String table) {
