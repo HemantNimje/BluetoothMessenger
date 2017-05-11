@@ -6,11 +6,11 @@ import android.os.Handler;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static edu.csulb.android.bluetoothmessenger.ChatActivity.DATATYPE_TEXT;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
 
@@ -73,8 +73,13 @@ public class GroupChat {
     }
 
     public void sendTextMessage(byte[] message) {
+        Calendar calendar = Calendar.getInstance();
+        //String timeSent = sdf.format(calendar.getTime());
+
+        String timeSent = Integer.toString(Calendar.getInstance().get(Calendar.MILLISECOND));
+        Log.d(TAG, "Time sent: " + timeSent);
         for (BluetoothChatService service: chatSockets) {
-            service.write(message, DATA_TEXT);
+            service.write(message, DATA_TEXT, timeSent);
         }
     }
 
@@ -84,7 +89,6 @@ public class GroupChat {
                 return false;
             }
         }
-
         return true;
     }
 

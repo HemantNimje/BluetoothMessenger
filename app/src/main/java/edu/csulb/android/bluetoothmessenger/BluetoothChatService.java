@@ -24,13 +24,7 @@ import java.util.UUID;
 
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_AUDIO;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
-import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE_64;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
-
-/**
- * Created by Hemant on 5/5/2017.
- */
-
 
 
 public class BluetoothChatService {
@@ -60,21 +54,16 @@ public class BluetoothChatService {
     public static final String TOAST = "toast";
 
     public static final int MESSAGE_STATE_CHANGE = 1;
-    public static final int MESSAGE_READ = 2;
-    public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
-    public static final int MESSAGE_TEST = 99;
 
     public static final int MESSAGE_READ_IMAGE = 6;
     public static final int MESSAGE_READ_AUDIO = 7;
     public static final int MESSAGE_READ_TEXT = 8;
 
-    public static final String DATATYPE_IMAGE = "image";
-    public static final String DATATYPE_TEXT = "text";
-    public static final String DATATYPE_FILE = "file";
-
-
+    public static final int MESSAGE_WRITE_IMAGE = 9;
+    public static final int MESSAGE_WRITE_AUDIO = 10;
+    public static final int MESSAGE_WRITE_TEXT = 11;
 
     private int mState;
     private int mNewState;
@@ -247,9 +236,6 @@ public class BluetoothChatService {
 
             while (mState == STATE_CONNECTED) {
                 try {
-//                    Log.d(TAG, "Device address + name:" + mSocket.getRemoteDevice().getAddress()
-//                    + " " + mSocket.getRemoteDevice().getName());
-
                     int numOfBytes = mInStream.read(bufferData);
                     byte[] trimmedBufferData = Arrays.copyOf(bufferData, numOfBytes);
                     bufferData = new byte[BUFFER_SIZE];
@@ -311,30 +297,6 @@ public class BluetoothChatService {
                                 imgMsg.sendToTarget();
                                 break;
                         }
-
-//                        if (datatype != 2) {
-//                            Log.d(TAG, "Data: " + new String(bos.toByteArray(), Charset.defaultCharset()));
-//
-//                            Message msg = mHandler.obtainMessage(MESSAGE_READ, -1, datatype, bos.toByteArray());
-//                            msg.sendToTarget();
-//                        } else {    //For images - Special check because we have to decode the image from Base64.
-//                            // images here
-//                            String decodedString = new String(bos.toByteArray(), Charset.defaultCharset());
-//                            //Log.d(TAG, "Image Base64 decoded string: " + decodedString);
-//                            byte[] decodedStringArray = Base64.decode(decodedString, Base64.DEFAULT);
-//                            Bitmap bp = BitmapFactory.decodeByteArray(decodedStringArray, 0, decodedStringArray.length);
-//
-//                            MessageInstance imgTestInstance = new MessageInstance();
-//                            imgTestInstance.setUserName(userName);
-//                            imgTestInstance.setMacAddress(macAddress);
-//                            imgTestInstance.setDataType(DATA_IMAGE);
-//                            imgTestInstance.setData(bp);
-//
-//                            Message imgMsg = mHandler.obtainMessage(MESSAGE_READ_IMAGE, -1, datatype, imgTestInstance);
-//                            imgMsg.sendToTarget();
-//                            //Message msg = mHandler.obtainMessage(MESSAGE_READ, -1, datatype, bp);
-//                            //msg.sendToTarget();
-//                        }
                         //Re-initialize for the next message.
                         datatype = 0;
                         numOfPackets = 0;
@@ -348,11 +310,12 @@ public class BluetoothChatService {
             }
         }
 
-        public void write(byte[] bytes, int datatype) {
+        public void write(byte[] bytes, int datatype, String timeSent) {
             try {
                 Message writtenMsg = null;
                 ByteArrayOutputStream tempOutputStream = new ByteArrayOutputStream();
                 ByteBuffer tempBuffer = ByteBuffer.allocate(bytes.length + 8);
+                MessageInstance dataSent = new MessageInstance();
                 if (datatype == DATA_IMAGE) {
 
                     System.out.println("IMAGE WRITE");
@@ -360,19 +323,41 @@ public class BluetoothChatService {
                     tempBuffer.putInt(DATA_IMAGE);
                     ByteArrayOutputStream imageStream = new ByteArrayOutputStream();
                     imageStream.write(bytes);
-                    String decodedString = new String(imageStream.toByteArray(), Charset.defaultCharset());
+                    String decodedString = new String(imageStream.toByteArray(),
+                            Charset.defaultCharset());
                     byte[] decodedStringArray = Base64.decode(decodedString, Base64.DEFAULT);
-                    Bitmap bp = BitmapFactory.decodeByteArray(decodedStringArray, 0, decodedStringArray.length);
-                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, DATA_IMAGE, bp);
+                    Bitmap bp = BitmapFactory.decodeByteArray(decodedStringArray,
+                            0, decodedStringArray.length);
+
+                    dataSent.setData(bp);
+                    dataSent.setDataType(DATA_IMAGE);
+                    dataSent.setTime(timeSent);
+
+                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_IMAGE, -1, DATA_IMAGE,
+                            dataSent);
+                    //writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, DATA_IMAGE, bp);
                     imageStream.close();
 
-
                 } else if (datatype == DATA_TEXT) {
+
                     tempBuffer.putInt(DATA_TEXT);
-                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, DATA_TEXT, bytes);
+                    dataSent.setData(bytes);
+                    dataSent.setDataType(DATA_TEXT);
+                    dataSent.setTime(timeSent);
+
+                    //writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, DATA_TEXT, bytes);
+                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_TEXT, -1, DATA_TEXT,
+                            dataSent);
+
                 } else if (datatype == DATA_AUDIO) {
                     tempBuffer.putInt(DATA_AUDIO);
-                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, DATA_AUDIO, bytes);
+                    dataSent.setData(bytes);
+                    dataSent.setDataType(DATA_AUDIO);
+                    dataSent.setTime(timeSent);
+
+                    //writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, DATA_AUDIO, bytes);
+                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_AUDIO, -1, DATA_AUDIO,
+                            dataSent);
                 }
                 Log.d(TAG, "Sending size: " + bytes.length);
                 tempBuffer.putInt(bytes.length);
@@ -389,7 +374,8 @@ public class BluetoothChatService {
 
                 Message writeErrorMsg = mHandler.obtainMessage(MESSAGE_TOAST);
                 Bundle bundle = new Bundle();
-                bundle.putString("toast", "Device disconnected. Couldn't send data to the other device");
+                bundle.putString("toast", "Device disconnected. " +
+                        "Couldn't send data to the other device");
                 writeErrorMsg.setData(bundle);
                 mHandler.sendMessage(writeErrorMsg);
             }
@@ -559,7 +545,7 @@ public class BluetoothChatService {
 //     * @param out The bytes to write
 //     * @see ConnectedThread#write(byte[])
 //     */
-    public void write(byte[] out, int datatype) {
+    public void write(byte[] out, int datatype, String timeSent) {
         // Create temporary object
         ConnectedThread r;
         // Synchronize a copy of the ConnectedThread
@@ -568,7 +554,7 @@ public class BluetoothChatService {
             r = mConnectedThread;
         }
         // Perform the write unsynchronized
-        r.write(out, datatype);
+        r.write(out, datatype, timeSent);
     }
 
     private synchronized void updateUserInterfaceTitle() {

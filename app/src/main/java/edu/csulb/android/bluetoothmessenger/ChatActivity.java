@@ -50,14 +50,15 @@ import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.DEVICE_A
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_READ_AUDIO;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_READ_IMAGE;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_READ_TEXT;
-import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_TEST;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_AUDIO;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_IMAGE;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_TEXT;
 import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_AUDIO;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
 public class ChatActivity extends AppCompatActivity {
-
 
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int REQUEST_CONNECT_DEVICE = 3;
@@ -80,13 +81,8 @@ public class ChatActivity extends AppCompatActivity {
     public static final String TOAST = "toast";
 
     public static final int MESSAGE_STATE_CHANGE = 1;
-    public static final int MESSAGE_READ = 2;
-    public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
-    public static final String DATATYPE_IMAGE = "image";
-    public static final String DATATYPE_TEXT = "text";
-    public static final String DATATYPE_FILE = "file";
 
     private ArrayAdapter<String> mConversationArrayAdapter;
 
@@ -388,7 +384,6 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     public void CameraPhoto(View view) {
-
         Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
         startActivityForResult(cameraIntent, CAMERA_REQUEST);
     }
@@ -452,7 +447,9 @@ public class ChatActivity extends AppCompatActivity {
                                     Base64.DEFAULT);
                             Log.d(TAG, "Base64 encoded string: " + encodedImage);
 //                        mChatService = new BluetoothChatService(mHandler);
-                            mChatService.write(encodedImage.getBytes(), DATA_IMAGE);
+                            Calendar calendar = Calendar.getInstance();
+                            String timeSent = sdf.format(calendar.getTime());
+                            mChatService.write(encodedImage.getBytes(), DATA_IMAGE, timeSent);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -469,7 +466,9 @@ public class ChatActivity extends AppCompatActivity {
                         String encodedImage = Base64.encodeToString(bos.toByteArray(),
                                 Base64.DEFAULT);
                         Log.d(TAG, "Base64 encoded string: " + encodedImage);
-                        mChatService.write(encodedImage.getBytes(), DATA_IMAGE);
+                        Calendar calendar = Calendar.getInstance();
+                        String timeSent = sdf.format(calendar.getTime());
+                        mChatService.write(encodedImage.getBytes(), DATA_IMAGE, timeSent);
                     }
                 }
                 break;
@@ -492,9 +491,10 @@ public class ChatActivity extends AppCompatActivity {
         mChatService.connect(device);
     }
 
-    private static final SimpleDateFormat sdf = new SimpleDateFormat("y-MM-dd HH:mm:ss");
+    static final SimpleDateFormat sdf = new SimpleDateFormat("y-MM-dd HH:mm:ss");
 
     String prevSendTime = null;
+    String timeInMilliseconds = null;
 
     Handler mHandler = new Handler() {
         @Override
@@ -513,50 +513,96 @@ public class ChatActivity extends AppCompatActivity {
                             break;
                     }
                     break;
-                case MESSAGE_WRITE:
 
-                    if (msg.arg2 == DATA_TEXT) {
-                        System.out.println("IIINSIIIDEE MESSAGE");
-                        byte[] writeBuf = (byte[]) msg.obj;
-                        // construct a string from the buffer
-                        String writeMessage = new String(writeBuf);
-                        Calendar calendar = Calendar.getInstance();
-                        String time = sdf.format(calendar.getTime());
 
-                        // If there is a group chat, you will not send multiple times
-                        // sometimes back to back messages have the same time
-                        // maybe use milliseconds to break ties
-                        if (prevSendTime == null) {
-                            prevSendTime = time;
-                        } else if (prevSendTime.equals(time)) {
-                            Log.d(TAG, "Time equal, msg not repeated");
-                            break;
-                        }
+                case MESSAGE_WRITE_TEXT:
+                    MessageInstance textWriteInstance = (MessageInstance) msg.obj;
+                    byte[] writeBuf = (byte[]) textWriteInstance.getData();
+                    // construct a string from the buffer
+                    String writeMessage = new String(writeBuf);
+                    Calendar calendar = Calendar.getInstance();
+                    String txtWriteTime = sdf.format(calendar.getTime());
+
+                    // This is stored in milliseconds for time checking
+                    String time = textWriteInstance.getTime();
+
+                    // If there is a group chat, you will not send multiple times
+                    // sometimes back to back messages have the same time
+                    // maybe use milliseconds to break ties
+                    if (prevSendTime == null) {
                         prevSendTime = time;
+                    } else if (prevSendTime.equals(time)) {
+                        Log.d(TAG, "Time equal, msg not repeated");
+                        break;
+                    }
+                    prevSendTime = time;
 
-                        chatMessageAdapter.add(new MessageInstance(true, writeMessage));
-                        chatMessageAdapter.notifyDataSetChanged();
-                        // Write messages to database
-                        // Add mAddress and mConnectedDeviceName to db for future recovery
+                    if (isGroupChat) {
+                        // fill in logic for groupchat db
+                    } else {
                         db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage);
-                    } else if (msg.arg2 == DATA_IMAGE) {
-                        System.out.println("IIINSIIIDEE IMAGE");
-                        imageBitmap = (Bitmap) msg.obj;
-                        if (imageBitmap != null) {
-                            chatMessageAdapter.add(new MessageInstance(true, imageBitmap));
-                            chatMessageAdapter.notifyDataSetChanged();
-                        } else {
-                            Log.e(TAG, "Fatal: Image bitmap is null");
-                        }
-                    } else if (msg.arg2 == DATA_AUDIO) {
-                        File f = new File(fileName);
-                        chatMessageAdapter.add(new MessageInstance(true, f));
+                    }
+
+                    String writeDisplayMessage = "Me: " + writeMessage + "\n"
+                            + "(" + txtWriteTime + ")";
+
+                    chatMessageAdapter.add(new MessageInstance(true, writeDisplayMessage));
+                    chatMessageAdapter.notifyDataSetChanged();
+                    break;
+
+                case MESSAGE_WRITE_AUDIO:
+                    MessageInstance audioWriteInstance = (MessageInstance) msg.obj;
+
+                    // Used for DB storage
+                    Calendar AudioCalendar = Calendar.getInstance();
+                    String AudioWriteTime = sdf.format(AudioCalendar.getTime());
+
+                    time = audioWriteInstance.getTime();
+
+                    if (prevSendTime == null) {
+                        prevSendTime = time;
+                    } else if (prevSendTime.equals(time)) {
+                        Log.d(TAG, "Time equal, msg not repeated");
+                        break;
+                    }
+                    prevSendTime = time;
+
+                    File f = new File(fileName);
+                    chatMessageAdapter.add(new MessageInstance(true, f));
+                    chatMessageAdapter.notifyDataSetChanged();
+                    break;
+
+                case MESSAGE_WRITE_IMAGE:
+                    Log.d(TAG, "Writing image");
+                    MessageInstance imageWriteInstance = (MessageInstance) msg.obj;
+
+                    // Used for DB storage
+                    Calendar ImageCalendar = Calendar.getInstance();
+                    String ImageWriteTime = sdf.format(ImageCalendar.getTime());
+
+                    time = imageWriteInstance.getTime();
+
+                    if (prevSendTime == null) {
+                        prevSendTime = time;
+                    } else if (prevSendTime.equals(time)) {
+                        Log.d(TAG, "Time equal, msg not repeated");
+                        break;
+                    }
+                    prevSendTime = time;
+
+                    imageBitmap = (Bitmap) imageWriteInstance.getData();
+                    if (imageBitmap != null) {
+                        chatMessageAdapter.add(new MessageInstance(true, imageBitmap));
                         chatMessageAdapter.notifyDataSetChanged();
+                    } else {
+                        Log.e(TAG, "Fatal: Image bitmap is null");
                     }
                     break;
 
                 case MESSAGE_READ_IMAGE:
                     MessageInstance msgImgData = (MessageInstance) msg.obj;
+
+                    // for database
                     Calendar calTest = Calendar.getInstance();
                     String readImageTime = sdf.format(calTest.getTime());
 
@@ -582,12 +628,18 @@ public class ChatActivity extends AppCompatActivity {
                     Calendar cal = Calendar.getInstance();
                     String readTime = sdf.format(cal.getTime());
 
-                    chatMessageAdapter.add(new MessageInstance(false, new String(readBuf)));
+                    String message = new String(readBuf);
+
+                    // modify this for group chat
+                    db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
+                            message);
+
+                    String displayMessage = msgTextData.getUserName() + ": " + message + "\n"
+                            + "(" + readTime + ")";
+
+                    chatMessageAdapter.add(new MessageInstance(false, displayMessage));
                     chatMessageAdapter.notifyDataSetChanged();
 
-                    // Write messages to db
-                    db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
-                            new String(readBuf));
 
                     Log.d(TAG, "Text was read from " + msgTextData.getUserName() + ": "
                             + msgTextData.getMacAddress());
@@ -744,7 +796,9 @@ public class ChatActivity extends AppCompatActivity {
             // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
 //            mChatService.write(send);
-            mChatService.write(message.getBytes(), DATA_TEXT);
+            Calendar calendar = Calendar.getInstance();
+            String timeSent = sdf.format(calendar.getTime());
+            mChatService.write(message.getBytes(), DATA_TEXT, timeSent);
 
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
@@ -880,14 +934,15 @@ public class ChatActivity extends AppCompatActivity {
                     FileInputStream fis = new FileInputStream(fileName);
                     byte[] buff = new byte[(int) f.length()];
                     fis.read(buff);
-                    mChatService.write(buff, DATA_AUDIO);
+                    Calendar calendar = Calendar.getInstance();
+                    String timeSent = sdf.format(calendar.getTime());
+                    mChatService.write(buff, DATA_AUDIO, timeSent);
                     fis.close();
                 } catch (Exception e) {
                     Log.e(TAG, "Could not open stream to save data", e);
                 }
             }
         }
-
     }
 
     /*
