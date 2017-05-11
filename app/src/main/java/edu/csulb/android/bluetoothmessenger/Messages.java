@@ -197,8 +197,8 @@ class ChatMessages extends SQLiteOpenHelper {
         insertMessage(timeStamp, userId, message, RECEIVED_MESSAGES_TABLE, dataType);
     }
 
-    boolean isUserInDb(String macAddress) {
-        String query = "SELECT " + USER_ID + " FROM " + USER_NAMES_TABLE
+    boolean isUserInDb(String macAddress, String table) {
+        String query = "SELECT " + USER_ID + " FROM " + table
                 + " WHERE " + USER_ID + " = '" + macAddress + "'";
 
         SQLiteDatabase db = this.getReadableDatabase();

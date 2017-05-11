@@ -45,6 +45,15 @@ public class GroupChat {
         }
     }
 
+    public boolean isConnectedToAll() {
+        for (Boolean isConnected : deviceConnections.values()) {
+            if (!isConnected) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // Each user will attempt to connect to every other user
     // Find open socket and find user you are not connected to
     public void startConnection() {
@@ -104,5 +113,7 @@ public class GroupChat {
     public String getGroupId() {
         return groupId;
     }
-    public String getGroupUserNames() {return groupUserNames;}
+    public String getGroupUserNames() {
+        return groupUserNames;
+    }
 }

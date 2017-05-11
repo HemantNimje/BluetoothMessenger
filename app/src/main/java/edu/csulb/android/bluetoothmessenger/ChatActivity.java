@@ -53,6 +53,8 @@ import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_AUDIO;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_IMAGE;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_TEXT;
+import static edu.csulb.android.bluetoothmessenger.ChatMessages.GROUP_CHAT_USER_TABLE;
+import static edu.csulb.android.bluetoothmessenger.ChatMessages.USER_NAMES_TABLE;
 import static edu.csulb.android.bluetoothmessenger.ChatMessages.compressBitmap;
 import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_AUDIO;
@@ -171,10 +173,7 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onClick(View view) {
-
-
                 onRecord(mStartRecording);
-
 
                 if (mStartRecording) {
                     btnRecord.setImageResource(R.drawable.ic_stop_black_24dp);
@@ -238,6 +237,11 @@ public class ChatActivity extends AppCompatActivity {
             return;
         } else if (isGroupChat) {
             Log.d(TAG, "Group chat");
+            if (db.isUserInDb(groupChatManager.getGroupId(), GROUP_CHAT_USER_TABLE)) {
+                Log.d(TAG, "Group is in database");
+            } else {
+                Log.d(TAG, "Group is not in database");
+            }
             return;
         }
 
@@ -783,10 +787,17 @@ public class ChatActivity extends AppCompatActivity {
                         groupChatManager.setConnectionAsTrue(deviceAddress);
                         Log.d(TAG, "Group chat is on" + isGroupChat);
                         Log.d(TAG, "Users size:" + users.size());
+
+                        if (groupChatManager.isConnectedToAll()) {
+                            Log.d(TAG, "Connected to all in group");
+                            db.insertGroupName(groupChatManager.getGroupId(),
+                                    groupChatManager.getGroupUserNames());
+                        }
+
                         break;
                     }
 
-                    if (db.isUserInDb(mConnectedDeviceAddress)) {
+                    if (db.isUserInDb(mConnectedDeviceAddress, USER_NAMES_TABLE)) {
                         Log.d(TAG, "User in db");
                         Intent intent = new Intent();
                         ArrayList<UserInfo> users = new ArrayList<>();
