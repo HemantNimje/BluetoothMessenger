@@ -40,6 +40,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -240,13 +242,22 @@ public class ChatActivity extends AppCompatActivity {
 
         List<ChatMessage> readMessages = getAllMessages(users, "Received");
         List<ChatMessage> sentMessages = getAllMessages(users, "Sent");
+
         List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
 
+
+        List<ChatMessage> readImages = getAllImages(users,"Received_image") ;
+        List<ChatMessage> sentImages = getAllImages(users,"Sent_image") ;
+
+        List<ChatMessage> combinedImages = ChatMessages.combineImages(readImages, sentImages);
+
         showChatHistory(combinedMessages);
+        showImageHistory(combinedImages);
     }
 
 
     void showChatHistory(List<ChatMessage> messages) {
+
         String receivedFrom = null;
         for (ChatMessage message : messages) {
             if (message.user.equals("Me")) {
@@ -259,6 +270,34 @@ public class ChatActivity extends AppCompatActivity {
                 /* Save the user name of the other device here provided that its not group chat */
                 if (receivedFrom == null && !isGroupChat) {
                     receivedFrom = message.user;
+                }
+            }
+            chatMessageAdapter.notifyDataSetChanged();
+        }
+
+        setChatTitle(users.get(0).getName());
+    }
+
+    void showImageHistory(List<ChatMessage> messages) {
+
+        System.out.println("HIStorical Images");
+
+        String receivedFrom = null;
+        for (ChatMessage image : messages) {
+            if (image.user.equals("Me")) {
+                System.out.println("Inside Image If");
+
+                chatMessageAdapter.add(new MessageInstance(true,
+                         image.image ));
+            } else {
+                System.out.println("Inside Image Else");
+
+                chatMessageAdapter.add(new MessageInstance(false,
+                        image.image ));
+
+                /* Save the user name of the other device here provided that its not group chat */
+                if (receivedFrom == null && !isGroupChat) {
+                    receivedFrom = image.user;
                 }
             }
             chatMessageAdapter.notifyDataSetChanged();
@@ -297,6 +336,34 @@ public class ChatActivity extends AppCompatActivity {
                     message.user = userName;
                 }
                 messages.add(message);
+            }
+        }
+        return messages;
+    }
+
+    List<ChatMessage> getAllImages(List<UserInfo> usersInfo, String messageType) {
+        List<ChatMessage> messages = new ArrayList<>();
+
+        for (UserInfo info : usersInfo) {
+            String macAddress = info.macAddress;
+            String userName = info.name;
+            List<ChatMessage> readImages;
+
+            if (messageType.equals("Sent_image")) {
+                readImages = db.retrieveSentImages(macAddress);
+                System.out.println("IMAGE RETRIVE FROM DB"+readImages);
+            } else {
+                readImages = db.retrieveReceivedImages(macAddress);
+                System.out.println("IMAGE RETRIVE FROM DB"+readImages);
+            }
+
+            for (ChatMessage image : readImages) {
+                if (messageType.equals("Sent_image")) {
+                    image.user = "Me";
+                } else {
+                    image.user = userName;
+                }
+                messages.add(image);
             }
         }
         return messages;
@@ -512,7 +579,6 @@ public class ChatActivity extends AppCompatActivity {
 
                     if (msg.arg2 == 1) {
 
-                        System.out.println("IIINSIIIDEE MESSAGE");
                         byte[] writeBuf = (byte[]) msg.obj;
                         // construct a string from the buffer
                         String writeMessage = new String(writeBuf);
@@ -534,13 +600,38 @@ public class ChatActivity extends AppCompatActivity {
                         chatMessageAdapter.notifyDataSetChanged();
                         // Write messages to database
                         // Add mAddress and mConnectedDeviceName to db for future recovery
-                        db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage);
+                        db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage,null);
                     } else if (msg.arg2 == 2) {
-                        System.out.println("IIINSIIIDEE IMAGE");
+
                         imageBitmap = (Bitmap) msg.obj;
+
+
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                        imageBitmap.compress(Bitmap.CompressFormat.JPEG,50,bos);
+                        String encodedImage = Base64.encodeToString(bos.toByteArray(),
+                                Base64.DEFAULT);
+                        byte[] decodedStringArray = Base64.decode(encodedImage, Base64.DEFAULT);
+
+                        Calendar calendar = Calendar.getInstance();
+                        String time = sdf.format(calendar.getTime());
+
+                        // If there is a group chat, you will not send multiple times
+                        // sometimes back to back messages have the same time
+                        // maybe use milliseconds to break ties
+                        if (prevSendTime == null) {
+                            prevSendTime = time;
+                        } else if (prevSendTime.equals(time)) {
+                            Log.d(TAG, "Time equal, msg not repeated");
+                            break;
+                        }
+                        prevSendTime = time;
+
                         if (imageBitmap != null) {
                             chatMessageAdapter.add(new MessageInstance(true, imageBitmap));
                             chatMessageAdapter.notifyDataSetChanged();
+
+                            db.insertSentImage(time,mConnectedDeviceAddress, decodedStringArray);
+
                         } else {
                             Log.e(TAG, "Fatal: Image bitmap is null");
                         }
@@ -548,6 +639,11 @@ public class ChatActivity extends AppCompatActivity {
                         File f = new File(fileName);
                         chatMessageAdapter.add(new MessageInstance(true, f));
                         chatMessageAdapter.notifyDataSetChanged();
+
+                        Calendar calendar = Calendar.getInstance();
+                        String time = sdf.format(calendar.getTime());
+
+//                        db.insertSentAudio(time,mConnectedDeviceAddress, f);
                     }
                     break;
 
@@ -563,12 +659,24 @@ public class ChatActivity extends AppCompatActivity {
 
                         // Write messages to db
                         db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
-                                new String(readBuf));
+                                new String(readBuf),null);
                     } else if (msg.arg2 == 2) {
                         imageBitmap = (Bitmap) msg.obj;
+
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                        imageBitmap.compress(Bitmap.CompressFormat.JPEG,50,bos);
+                        String encodedImage = Base64.encodeToString(bos.toByteArray(),
+                                Base64.DEFAULT);
+                        byte[] decodedStringArray = Base64.decode(encodedImage, Base64.DEFAULT);
+
+
+                        Calendar cal = Calendar.getInstance();
+                        String readTime = sdf.format(cal.getTime());
+
                         if (imageBitmap != null) {
                             chatMessageAdapter.add(new MessageInstance(false, imageBitmap));
                             chatMessageAdapter.notifyDataSetChanged();
+                            db.insertReceivedImage(readTime,mConnectedDeviceAddress, decodedStringArray);
                         } else {
                             Log.e(TAG, "Fatal: Image bitmap is null");
                         }
