@@ -12,11 +12,13 @@ import android.util.Base64;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_AUDIO;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
@@ -42,6 +44,7 @@ class ChatMessage {
     String message;
     String user;
     Bitmap image;
+    File audioFile;
     int dataType;
 
     ChatMessage(String time, String message) {
@@ -56,6 +59,11 @@ class ChatMessage {
         dataType = DATA_IMAGE;
     }
 
+    ChatMessage(String time, File audioFile) {
+        timeStamp = time;
+        this.audioFile = audioFile;
+        dataType = DATA_AUDIO;
+    }
 }
 
 class ChatMessages extends SQLiteOpenHelper {
@@ -73,6 +81,7 @@ class ChatMessages extends SQLiteOpenHelper {
     private static final String USER_NAME = "UserName";
     private static final String GROUP_ID = "GroupId";
     private static final String IMAGE = "Image";
+    private static final String AUDIO = "Audio";
 
     private static final String TAG = "Messages";
 
@@ -87,6 +96,7 @@ class ChatMessages extends SQLiteOpenHelper {
                 + USER_ID + " TEXT,"
                 + MESSAGE + " TEXT,"
                 + IMAGE + " BLOB,"
+                + AUDIO + " TEXT,"
                 + "PRIMARY KEY ("
                 + TIME_STAMP + ", "
                 + USER_ID + ") )";
@@ -139,10 +149,12 @@ class ChatMessages extends SQLiteOpenHelper {
         }
         else if (dataType == DATA_IMAGE) {
             insertValues.put(IMAGE, (byte []) message);
+        } else if (dataType == DATA_AUDIO) {
+            insertValues.put(AUDIO, message.toString());
         }
 
         try {
-            long d = db.insert(tableType, null, insertValues);
+            db.insert(tableType, null, insertValues);
         } catch (SQLiteConstraintException e) {
             Log.e(TAG, "Error inserting messages");
         }
@@ -203,7 +215,7 @@ class ChatMessages extends SQLiteOpenHelper {
 
     private ArrayList<ChatMessage> retrieveMessages(String userId, String tableType) {
         ArrayList<ChatMessage> userMessages = new ArrayList<>();
-        String select = "SELECT Time, Message, Image FROM " + tableType +
+        String select = "SELECT Time, Message, Image, Audio FROM " + tableType +
                 " WHERE " + USER_ID + " = '" + userId + "'";
 
         Log.d(TAG, select);
@@ -216,14 +228,18 @@ class ChatMessages extends SQLiteOpenHelper {
                 String date = cursor.getString(0);
                 String message = cursor.getString(1);
                 byte[] image = cursor.getBlob(2);
+                String audio = cursor.getString(3);
 
-                if (message == null) {
+                if (image != null) {
                     Log.d(TAG, "Message is null, adding image");
                     Bitmap bpImage = BitmapFactory.decodeByteArray(image, 0, image.length);
                     userMessages.add(new ChatMessage(date, bpImage));
-                } else {
+                } else if (message != null){
                     Log.d(TAG, "Adding Message");
                     userMessages.add(new ChatMessage(date, message));
+                } else {
+                    Log.d(TAG, "Adding audio file");
+                    userMessages.add(new ChatMessage(date, new File(audio)));
                 }
             } while (cursor.moveToNext());
         }

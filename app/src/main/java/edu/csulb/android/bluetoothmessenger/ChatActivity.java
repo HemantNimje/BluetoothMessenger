@@ -251,6 +251,8 @@ public class ChatActivity extends AppCompatActivity {
         showChatHistory(combinedMessages);
     }
 
+    private
+
     void showChatHistory(List<ChatMessage> messages) {
         String receivedFrom = null;
         for (ChatMessage message : messages) {
@@ -260,18 +262,22 @@ public class ChatActivity extends AppCompatActivity {
 
                 if (message.dataType == DATA_IMAGE) {
                     chatMessageAdapter.add(new MessageInstance(true, message.image));
-                } else {
+                } else if (message.dataType == DATA_TEXT) {
                     chatMessageAdapter.add(new MessageInstance(true,
                             message.user + ": " + message.message + "\n ("
                                     + message.timeStamp + ")"));
+                } else {
+                    chatMessageAdapter.add(new MessageInstance(true, message.audioFile));
                 }
             } else {
                 if (message.dataType == DATA_IMAGE) {
                     chatMessageAdapter.add(new MessageInstance(false, message.image));
-                } else {
+                } else if (message.dataType == DATA_TEXT){
                     chatMessageAdapter.add(new MessageInstance(false,
                             message.user + ": " + message.message + "\n ("
                                     + message.timeStamp + ")"));
+                } else {
+                    chatMessageAdapter.add(new MessageInstance(false, message.audioFile));
                 }
             }
             /* Save the user name of the other device here provided that its not group chat */
@@ -565,7 +571,7 @@ public class ChatActivity extends AppCompatActivity {
 
                 case MESSAGE_WRITE_AUDIO:
                     MessageInstance audioWriteInstance = (MessageInstance) msg.obj;
-
+                    String connectedMacAddress = audioWriteInstance.getMacAddress();
                     // Used for DB storage
                     Calendar AudioCalendar = Calendar.getInstance();
                     String AudioWriteTime = sdf.format(AudioCalendar.getTime());
@@ -583,6 +589,9 @@ public class ChatActivity extends AppCompatActivity {
                     File f = new File(fileName);
                     chatMessageAdapter.add(new MessageInstance(true, f));
                     chatMessageAdapter.notifyDataSetChanged();
+
+                    db.insertSentMessage(time, connectedMacAddress, f.toString(), DATA_AUDIO);
+
                     break;
 
                 case MESSAGE_WRITE_IMAGE:
@@ -673,17 +682,24 @@ public class ChatActivity extends AppCompatActivity {
 
                 case MESSAGE_READ_AUDIO:
                     MessageInstance msgAudioData = (MessageInstance) msg.obj;
+                    connectedMacAddress = msgAudioData.getMacAddress();
+                    Calendar readAudioCal = Calendar.getInstance();
+                    readTime = sdf.format(readAudioCal.getTime());
                     String filename = getFilename();
                     FileOutputStream fos;
+
                     try {
                         if (filename != null) {
                             byte[] buff = (byte[]) msgAudioData.getData();
+                            Log.d(TAG, "TIME: " + readTime);
                             fos = new FileOutputStream(filename);
                             fos.write(buff);
                             fos.flush();
                             fos.close();
                             chatMessageAdapter.add(new MessageInstance(false, new File(filename)));
                             chatMessageAdapter.notifyDataSetChanged();
+                            db.insertReceivedMessage(readTime, connectedMacAddress, filename.toString()
+                                    , DATA_AUDIO);
                         }
                     } catch (Exception e) {
                         Toast.makeText(ChatActivity.this, "Could not save the file",

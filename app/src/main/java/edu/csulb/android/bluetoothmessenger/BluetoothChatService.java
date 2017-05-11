@@ -319,6 +319,7 @@ public class BluetoothChatService {
                 String userName = mSocket.getRemoteDevice().getName();
                 dataSent.setMacAddress(macAddress);
                 dataSent.setUserName(userName);
+                dataSent.setTime(timeSent);
                 if (datatype == DATA_IMAGE) {
 
                     System.out.println("IMAGE WRITE");
@@ -334,7 +335,6 @@ public class BluetoothChatService {
 
                     dataSent.setData(bp);
                     dataSent.setDataType(DATA_IMAGE);
-                    dataSent.setTime(timeSent);
 
                     writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_IMAGE, -1, DATA_IMAGE,
                             dataSent);
@@ -345,7 +345,6 @@ public class BluetoothChatService {
                     tempBuffer.putInt(DATA_TEXT);
                     dataSent.setData(bytes);
                     dataSent.setDataType(DATA_TEXT);
-                    dataSent.setTime(timeSent);
 
                     writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_TEXT, -1, DATA_TEXT,
                             dataSent);
@@ -354,7 +353,6 @@ public class BluetoothChatService {
                     tempBuffer.putInt(DATA_AUDIO);
                     dataSent.setData(bytes);
                     dataSent.setDataType(DATA_AUDIO);
-                    dataSent.setTime(timeSent);
 
                     writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_AUDIO, -1, DATA_AUDIO,
                             dataSent);
