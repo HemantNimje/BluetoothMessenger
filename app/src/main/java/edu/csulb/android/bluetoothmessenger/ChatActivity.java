@@ -53,6 +53,7 @@ import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_AUDIO;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_IMAGE;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_TEXT;
+import static edu.csulb.android.bluetoothmessenger.ChatMessages.compressBitmap;
 import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_AUDIO;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
@@ -234,6 +235,7 @@ public class ChatActivity extends AppCompatActivity {
                 .getSerializableExtra("USERS-INFO");
 
         if (users == null) {
+            Log.d(TAG, "Users is null");
             return;
         } else if (isGroupChat) {
             Log.d(TAG, "Group chat");
@@ -251,18 +253,34 @@ public class ChatActivity extends AppCompatActivity {
 
     void showChatHistory(List<ChatMessage> messages) {
         String receivedFrom = null;
+        Log.d(TAG, "No messages");
         for (ChatMessage message : messages) {
+            Log.d(TAG, message.user);
+            Log.d(TAG, Integer.toString(message.dataType));
             if (message.user.equals("Me")) {
-                chatMessageAdapter.add(new MessageInstance(true,
-                        message.user + ": " + message.message + "\n (" + message.timeStamp + ")"));
-            } else {
-                chatMessageAdapter.add(new MessageInstance(false,
-                        message.user + ": " + message.message + "\n (" + message.timeStamp + ")"));
 
-                /* Save the user name of the other device here provided that its not group chat */
-                if (receivedFrom == null && !isGroupChat) {
-                    receivedFrom = message.user;
+                if (message.dataType == DATA_IMAGE) {
+                    Log.d(TAG, "WRITE IMAGE DISPLAY");
+                    chatMessageAdapter.add(new MessageInstance(true, message.image));
+                } else {
+                    chatMessageAdapter.add(new MessageInstance(true,
+                            message.user + ": " + message.message + "\n ("
+                                    + message.timeStamp + ")"));
                 }
+            } else {
+
+                if (message.dataType == DATA_IMAGE) {
+                    Log.d(TAG, "READ IMAGE DISPLAY");
+                    chatMessageAdapter.add(new MessageInstance(false, message.image));
+                } else {
+                    chatMessageAdapter.add(new MessageInstance(false,
+                            message.user + ": " + message.message + "\n ("
+                                    + message.timeStamp + ")"));
+                }
+            }
+            /* Save the user name of the other device here provided that its not group chat */
+            if (receivedFrom == null && !isGroupChat) {
+                receivedFrom = message.user;
             }
             chatMessageAdapter.notifyDataSetChanged();
         }
@@ -445,7 +463,7 @@ public class ChatActivity extends AppCompatActivity {
                             bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
                             String encodedImage = Base64.encodeToString(bos.toByteArray(),
                                     Base64.DEFAULT);
-                            Log.d(TAG, "Base64 encoded string: " + encodedImage);
+                            //Log.d(TAG, "Base64 encoded string: " + encodedImage);
 //                        mChatService = new BluetoothChatService(mHandler);
                             Calendar calendar = Calendar.getInstance();
                             String timeSent = sdf.format(calendar.getTime());
@@ -494,7 +512,6 @@ public class ChatActivity extends AppCompatActivity {
     static final SimpleDateFormat sdf = new SimpleDateFormat("y-MM-dd HH:mm:ss");
 
     String prevSendTime = null;
-    String timeInMilliseconds = null;
 
     Handler mHandler = new Handler() {
         @Override
@@ -575,10 +592,11 @@ public class ChatActivity extends AppCompatActivity {
                 case MESSAGE_WRITE_IMAGE:
                     Log.d(TAG, "Writing image");
                     MessageInstance imageWriteInstance = (MessageInstance) msg.obj;
+                    String userMacAddress = imageWriteInstance.getMacAddress();
 
                     // Used for DB storage
                     Calendar ImageCalendar = Calendar.getInstance();
-                    String ImageWriteTime = sdf.format(ImageCalendar.getTime());
+                    String imageWriteTime = sdf.format(ImageCalendar.getTime());
 
                     time = imageWriteInstance.getTime();
 
@@ -591,6 +609,12 @@ public class ChatActivity extends AppCompatActivity {
                     prevSendTime = time;
 
                     imageBitmap = (Bitmap) imageWriteInstance.getData();
+                    byte[] writeDecodedStringArray = compressBitmap(imageBitmap);
+
+                    db.insertSentMessage(imageWriteTime, userMacAddress, writeDecodedStringArray,
+                            DATA_IMAGE);
+                    Log.d(TAG, "Inserted write image into DB");
+
                     if (imageBitmap != null) {
                         chatMessageAdapter.add(new MessageInstance(true, imageBitmap));
                         chatMessageAdapter.notifyDataSetChanged();
@@ -601,13 +625,20 @@ public class ChatActivity extends AppCompatActivity {
 
                 case MESSAGE_READ_IMAGE:
                     MessageInstance msgImgData = (MessageInstance) msg.obj;
-
-                    // for database
+                    userMacAddress = msgImgData.getMacAddress();
                     Calendar calTest = Calendar.getInstance();
                     String readImageTime = sdf.format(calTest.getTime());
 
                     if (msgImgData.getDataType() == DATA_IMAGE) {
                         imageBitmap = (Bitmap) msgImgData.getData();
+
+                        // Compress and store in database
+                        byte[] decodedStringArray = compressBitmap(imageBitmap);
+
+                        db.insertReceivedMessage(readImageTime, userMacAddress, decodedStringArray,
+                                DATA_IMAGE);
+                        Log.d(TAG, "Image stored in db");
+
                         if (imageBitmap != null) {
                             chatMessageAdapter.add(new MessageInstance(false, imageBitmap));
                             chatMessageAdapter.notifyDataSetChanged();

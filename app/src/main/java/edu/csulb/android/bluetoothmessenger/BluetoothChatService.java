@@ -334,7 +334,6 @@ public class BluetoothChatService {
 
                     writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_IMAGE, -1, DATA_IMAGE,
                             dataSent);
-                    //writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, DATA_IMAGE, bp);
                     imageStream.close();
 
                 } else if (datatype == DATA_TEXT) {
@@ -344,7 +343,6 @@ public class BluetoothChatService {
                     dataSent.setDataType(DATA_TEXT);
                     dataSent.setTime(timeSent);
 
-                    //writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, DATA_TEXT, bytes);
                     writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_TEXT, -1, DATA_TEXT,
                             dataSent);
 
@@ -354,13 +352,12 @@ public class BluetoothChatService {
                     dataSent.setDataType(DATA_AUDIO);
                     dataSent.setTime(timeSent);
 
-                    //writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, DATA_AUDIO, bytes);
                     writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_AUDIO, -1, DATA_AUDIO,
                             dataSent);
                 }
-                Log.d(TAG, "Sending size: " + bytes.length);
+                //Log.d(TAG, "Sending size: " + bytes.length);
                 tempBuffer.putInt(bytes.length);
-                Log.d(TAG, "Sending data: " + new String(bytes, Charset.defaultCharset()));
+                //Log.d(TAG, "Sending data: " + new String(bytes, Charset.defaultCharset()));
                 tempBuffer.put(bytes);
                 tempOutputStream.write(tempBuffer.array());
                 mOutStream.write(tempOutputStream.toByteArray());

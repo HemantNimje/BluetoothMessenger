@@ -7,8 +7,11 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
 import android.util.Log;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -69,7 +72,6 @@ class ChatMessages extends SQLiteOpenHelper {
     private static final String MESSAGE = "Message";
     private static final String USER_NAME = "UserName";
     private static final String GROUP_ID = "GroupId";
-    private static final String DATA_TYPE = "DataType";
     private static final String IMAGE = "Image";
 
     private static final String TAG = "Messages";
@@ -132,10 +134,12 @@ class ChatMessages extends SQLiteOpenHelper {
         insertValues.put(TIME_STAMP, timeStamp);
         insertValues.put(USER_ID, userId);
 
+        Log.d(TAG, "INSERTING MESSAGE");
         if (dataType == DATA_TEXT) {
-            insertValues.put(MESSAGE, (String)message);
+            insertValues.put(MESSAGE, (String) message);
         }
         else if (dataType == DATA_IMAGE) {
+            Log.d(TAG, "SAVING IMAGE TO DB");
             insertValues.put(IMAGE, (byte []) message);
         }
 
@@ -173,11 +177,11 @@ class ChatMessages extends SQLiteOpenHelper {
         db.close();
     }
 
-    void insertSentMessage(String timeStamp, String userId, String message, int dataType) {
+    void insertSentMessage(String timeStamp, String userId, Object message, int dataType) {
         insertMessage(timeStamp, userId, message, SENT_MESSAGES_TABLE, dataType);
     }
 
-    void insertReceivedMessage(String timeStamp, String userId, String message, int dataType) {
+    void insertReceivedMessage(String timeStamp, String userId, Object message, int dataType) {
         insertMessage(timeStamp, userId, message, RECEIVED_MESSAGES_TABLE, dataType);
     }
 
@@ -201,20 +205,27 @@ class ChatMessages extends SQLiteOpenHelper {
 
     private ArrayList<ChatMessage> retrieveMessages(String userId, String tableType) {
         ArrayList<ChatMessage> userMessages = new ArrayList<>();
-        String select = "SELECT Time, Message FROM " + tableType +
+        String select = "SELECT Time, Message, Image FROM " + tableType +
                 " WHERE " + USER_ID + " = '" + userId + "'";
 
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery(select, null);
-
+        Log.d(TAG, "retrieving messages");
         if(cursor.moveToFirst()) {
             do {
                 String date = cursor.getString(0);
                 String message = cursor.getString(1);
-                userMessages.add(new ChatMessage(date, message));
+                byte[] image = cursor.getBlob(2);
+
+                if (message == null) {
+                    Log.d(TAG, "Message is null, adding image");
+                    Bitmap bpImage = BitmapFactory.decodeByteArray(image, 0, image.length);
+                    userMessages.add(new ChatMessage(date, bpImage));
+                } else {
+                    userMessages.add(new ChatMessage(date, message));
+                }
             } while (cursor.moveToNext());
         }
-
         cursor.close();
         db.close();
 
@@ -222,10 +233,12 @@ class ChatMessages extends SQLiteOpenHelper {
     }
 
     ArrayList<ChatMessage> retrieveReceivedMessages(String userId) {
+        Log.d(TAG, "retrieving received messages");
         return retrieveMessages(userId, RECEIVED_MESSAGES_TABLE);
     }
 
     ArrayList<ChatMessage> retrieveSentMessages(String userId) {
+        Log.d(TAG, "retrieving sent messages");
         return retrieveMessages(userId, SENT_MESSAGES_TABLE);
     }
 
@@ -280,5 +293,13 @@ class ChatMessages extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return userNames;
+    }
+
+    static byte[] compressBitmap(Bitmap image) {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        image.compress(Bitmap.CompressFormat.JPEG, 50, bos);
+        String encodedImage = Base64.encodeToString(bos.toByteArray(),
+                Base64.DEFAULT);
+        return Base64.decode(encodedImage, Base64.DEFAULT);
     }
 }
