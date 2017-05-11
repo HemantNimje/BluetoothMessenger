@@ -47,7 +47,14 @@ import java.util.List;
 
 import static android.os.Environment.getExternalStorageDirectory;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.DEVICE_ADDRESS;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_READ_AUDIO;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_READ_IMAGE;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_READ_TEXT;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_TEST;
 import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_AUDIO;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -445,7 +452,7 @@ public class ChatActivity extends AppCompatActivity {
                                     Base64.DEFAULT);
                             Log.d(TAG, "Base64 encoded string: " + encodedImage);
 //                        mChatService = new BluetoothChatService(mHandler);
-                            mChatService.write(encodedImage.getBytes(), DATATYPE_IMAGE);
+                            mChatService.write(encodedImage.getBytes(), DATA_IMAGE);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -462,7 +469,7 @@ public class ChatActivity extends AppCompatActivity {
                         String encodedImage = Base64.encodeToString(bos.toByteArray(),
                                 Base64.DEFAULT);
                         Log.d(TAG, "Base64 encoded string: " + encodedImage);
-                        mChatService.write(encodedImage.getBytes(), DATATYPE_IMAGE);
+                        mChatService.write(encodedImage.getBytes(), DATA_IMAGE);
                     }
                 }
                 break;
@@ -492,7 +499,6 @@ public class ChatActivity extends AppCompatActivity {
     Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            //FragmentActivity activity = getActivity();
             switch (msg.what) {
                 case MESSAGE_STATE_CHANGE:
                     switch (msg.arg1) {
@@ -504,14 +510,12 @@ public class ChatActivity extends AppCompatActivity {
                         case BluetoothChatService.STATE_LISTEN:
                         case BluetoothChatService.STATE_NONE:
                             connectionStatus.setText(getResources().getString(R.string.disconnected));
-                            //setStatus(R.string.title_not_connected);
                             break;
                     }
                     break;
                 case MESSAGE_WRITE:
 
-                    if (msg.arg2 == 1) {
-
+                    if (msg.arg2 == DATA_TEXT) {
                         System.out.println("IIINSIIIDEE MESSAGE");
                         byte[] writeBuf = (byte[]) msg.obj;
                         // construct a string from the buffer
@@ -535,7 +539,7 @@ public class ChatActivity extends AppCompatActivity {
                         // Write messages to database
                         // Add mAddress and mConnectedDeviceName to db for future recovery
                         db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage);
-                    } else if (msg.arg2 == 2) {
+                    } else if (msg.arg2 == DATA_IMAGE) {
                         System.out.println("IIINSIIIDEE IMAGE");
                         imageBitmap = (Bitmap) msg.obj;
                         if (imageBitmap != null) {
@@ -544,55 +548,74 @@ public class ChatActivity extends AppCompatActivity {
                         } else {
                             Log.e(TAG, "Fatal: Image bitmap is null");
                         }
-                    } else if (msg.arg2 == 3) {
+                    } else if (msg.arg2 == DATA_AUDIO) {
                         File f = new File(fileName);
                         chatMessageAdapter.add(new MessageInstance(true, f));
                         chatMessageAdapter.notifyDataSetChanged();
                     }
                     break;
 
-                case MESSAGE_READ:
-                    if (msg.arg2 == 1) {
-                        byte[] readBuf = (byte[]) msg.obj;
-                        // construct a string from the valid bytes in the buffer
-                        Calendar cal = Calendar.getInstance();
-                        String readTime = sdf.format(cal.getTime());
+                case MESSAGE_READ_IMAGE:
+                    MessageInstance msgImgData = (MessageInstance) msg.obj;
+                    Calendar calTest = Calendar.getInstance();
+                    String readImageTime = sdf.format(calTest.getTime());
 
-                        chatMessageAdapter.add(new MessageInstance(false, new String(readBuf)));
-                        chatMessageAdapter.notifyDataSetChanged();
-
-                        // Write messages to db
-                        db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
-                                new String(readBuf));
-                    } else if (msg.arg2 == 2) {
-                        imageBitmap = (Bitmap) msg.obj;
+                    if (msgImgData.getDataType() == DATA_IMAGE) {
+                        imageBitmap = (Bitmap) msgImgData.getData();
                         if (imageBitmap != null) {
                             chatMessageAdapter.add(new MessageInstance(false, imageBitmap));
                             chatMessageAdapter.notifyDataSetChanged();
                         } else {
                             Log.e(TAG, "Fatal: Image bitmap is null");
                         }
-                    } else if (msg.arg2 == 3) {
-                        String filename = getFilename();
-                        FileOutputStream fos;
-                        try {
-                            if (filename != null) {
-                                byte[] buff = (byte[]) msg.obj;
-                                fos = new FileOutputStream(filename);
-                                fos.write(buff);
-                                fos.flush();
-                                fos.close();
-                                chatMessageAdapter.add(new MessageInstance(false, new File(filename)));
-                                chatMessageAdapter.notifyDataSetChanged();
-                            }
-                        } catch (Exception e) {
-                            Toast.makeText(ChatActivity.this, "Could not save the file",
-                                    Toast.LENGTH_SHORT).show();
-                            Log.e(TAG, "Could not save the file", e);
-                        }
                     }
+
+                    Log.d(TAG, "Image was read from " + msgImgData.getUserName() + ": "
+                        + msgImgData.getMacAddress());
+
                     break;
 
+                case MESSAGE_READ_TEXT:
+                    MessageInstance msgTextData = (MessageInstance) msg.obj;
+                    byte[] readBuf = (byte[]) msgTextData.getData();
+                    // construct a string from the valid bytes in the buffer
+                    Calendar cal = Calendar.getInstance();
+                    String readTime = sdf.format(cal.getTime());
+
+                    chatMessageAdapter.add(new MessageInstance(false, new String(readBuf)));
+                    chatMessageAdapter.notifyDataSetChanged();
+
+                    // Write messages to db
+                    db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
+                            new String(readBuf));
+
+                    Log.d(TAG, "Text was read from " + msgTextData.getUserName() + ": "
+                            + msgTextData.getMacAddress());
+                    break;
+
+                case MESSAGE_READ_AUDIO:
+                    MessageInstance msgAudioData = (MessageInstance) msg.obj;
+                    String filename = getFilename();
+                    FileOutputStream fos;
+                    try {
+                        if (filename != null) {
+                            byte[] buff = (byte[]) msgAudioData.getData();
+                            fos = new FileOutputStream(filename);
+                            fos.write(buff);
+                            fos.flush();
+                            fos.close();
+                            chatMessageAdapter.add(new MessageInstance(false, new File(filename)));
+                            chatMessageAdapter.notifyDataSetChanged();
+                        }
+                    } catch (Exception e) {
+                        Toast.makeText(ChatActivity.this, "Could not save the file",
+                                Toast.LENGTH_SHORT).show();
+                        Log.e(TAG, "Could not save the file", e);
+                    }
+
+                    Log.d(TAG, "Audio was saved from " + msgAudioData.getUserName() + ": "
+                        + msgAudioData.getMacAddress());
+                    break;
 
                 case MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -721,7 +744,7 @@ public class ChatActivity extends AppCompatActivity {
             // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
 //            mChatService.write(send);
-            mChatService.write(message.getBytes(), DATATYPE_TEXT);
+            mChatService.write(message.getBytes(), DATA_TEXT);
 
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
@@ -857,7 +880,7 @@ public class ChatActivity extends AppCompatActivity {
                     FileInputStream fis = new FileInputStream(fileName);
                     byte[] buff = new byte[(int) f.length()];
                     fis.read(buff);
-                    mChatService.write(buff, DATATYPE_FILE);
+                    mChatService.write(buff, DATA_AUDIO);
                     fis.close();
                 } catch (Exception e) {
                     Log.e(TAG, "Could not open stream to save data", e);

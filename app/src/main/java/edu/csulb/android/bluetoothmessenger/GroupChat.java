@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import static edu.csulb.android.bluetoothmessenger.ChatActivity.DATATYPE_TEXT;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
 
 /**
@@ -73,7 +74,7 @@ public class GroupChat {
 
     public void sendTextMessage(byte[] message) {
         for (BluetoothChatService service: chatSockets) {
-            service.write(message, DATATYPE_TEXT);
+            service.write(message, DATA_TEXT);
         }
     }
 
