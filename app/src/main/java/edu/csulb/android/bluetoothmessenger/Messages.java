@@ -179,6 +179,8 @@ class ChatMessages extends SQLiteOpenHelper {
         ContentValues insertValues = new ContentValues();
         insertValues.put(USER_NAME, GroupUserNames);
         insertValues.put(USER_ID, GroupId);
+        Log.d(TAG, GroupUserNames);
+        Log.d(TAG, GroupId);
         try {
             db.insert(GROUP_CHAT_USER_TABLE, null, insertValues);
         } catch (SQLiteConstraintException e) {
@@ -318,5 +320,23 @@ class ChatMessages extends SQLiteOpenHelper {
         String encodedImage = Base64.encodeToString(bos.toByteArray(),
                 Base64.DEFAULT);
         return Base64.decode(encodedImage, Base64.DEFAULT);
+    }
+
+    static List<String> orderGroupChat(List<String> groupChat) {
+        ArrayList<String> correctGroupings = new ArrayList<>();
+        for (String group : groupChat) {
+            String[] usersSplitUp = group.split("[\\r?\\n]+");
+            String matchUserToAddress = "";
+            for(int i = 0, j = usersSplitUp.length/2; j < usersSplitUp.length; i++, j++ ) {
+                if (j == usersSplitUp.length - 1) {
+                    matchUserToAddress += usersSplitUp[i] + "\n" + usersSplitUp[j];
+                } else {
+                    matchUserToAddress += usersSplitUp[i] + "\n" + usersSplitUp[j] + "\n";
+                }
+                Log.d(TAG, matchUserToAddress);
+            }
+            correctGroupings.add(matchUserToAddress);
+        }
+        return correctGroupings;
     }
 }

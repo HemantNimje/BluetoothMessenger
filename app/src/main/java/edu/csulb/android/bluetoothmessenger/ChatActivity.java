@@ -116,6 +116,7 @@ public class ChatActivity extends AppCompatActivity {
         setContentView(R.layout.chat_activity_main);
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        db = new ChatMessages(getApplicationContext());
 
         ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
                 .getSerializableExtra("USERS-INFO");
@@ -198,8 +199,6 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
-
-        db = new ChatMessages(getApplicationContext());
         loadChatHistory(getIntent());
         // Performing this check in onResume() covers the case in which BT was
         // not enabled during onStart(), so we were paused to enable it...
@@ -218,7 +217,6 @@ public class ChatActivity extends AppCompatActivity {
             return;
         } else if (isGroupChat) {
             groupChatManager.startConnection();
-            db.insertGroupName(groupChatManager.getGroupId(), groupChatManager.getGroupUserNames());
             return;
         }
 
@@ -815,6 +813,7 @@ public class ChatActivity extends AppCompatActivity {
         if (isGroupChat) {
             Log.d(TAG, "setting up group chat");
             groupChatManager = new GroupChat(users, mHandler);
+            db.insertGroupName(groupChatManager.getGroupId(), groupChatManager.getGroupUserNames());
         } else {
             Log.d(TAG, "setting up single chat");
             mChatService = new BluetoothChatService(mHandler);

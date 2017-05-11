@@ -20,6 +20,7 @@ import java.util.List;
 
 import static edu.csulb.android.bluetoothmessenger.ChatMessages.GROUP_CHAT_USER_TABLE;
 import static edu.csulb.android.bluetoothmessenger.ChatMessages.USER_NAMES_TABLE;
+import static edu.csulb.android.bluetoothmessenger.ChatMessages.orderGroupChat;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -83,6 +84,12 @@ public class MainActivity extends AppCompatActivity {
 
         ArrayList<String> previousGroupChatNames = (ArrayList<String>) db
                 .getPreviousChatNames(GROUP_CHAT_USER_TABLE);
+
+        List<String> orderedGroupChats = orderGroupChat(previousGroupChatNames);
+
+        for (String group : orderedGroupChats) {
+            previousChatNames.add(group);
+        }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, previousChatNames);
