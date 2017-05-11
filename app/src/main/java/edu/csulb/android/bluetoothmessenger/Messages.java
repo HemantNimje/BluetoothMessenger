@@ -314,12 +314,17 @@ class ChatMessages extends SQLiteOpenHelper {
         return userNames;
     }
 
-    static byte[] compressBitmap(Bitmap image) {
+    static byte[] compressBitmap(Bitmap image, boolean isBeforeSocketSend) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
         image.compress(Bitmap.CompressFormat.JPEG, 50, bos);
         String encodedImage = Base64.encodeToString(bos.toByteArray(),
                 Base64.DEFAULT);
-        return Base64.decode(encodedImage, Base64.DEFAULT);
+
+        byte[] compressed = isBeforeSocketSend ? encodedImage.getBytes()
+                : Base64.decode(encodedImage, Base64.DEFAULT);
+
+        return compressed;
     }
 
     static List<String> orderGroupChat(List<String> groupChat) {

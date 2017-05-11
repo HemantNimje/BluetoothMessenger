@@ -109,6 +109,7 @@ public class ChatActivity extends AppCompatActivity {
     private ArrayList<UserInfo> users;
 
     private final static String TAG = "ChatActivity";
+    private final static int MAX_IMAGE_SIZE = 200000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -248,8 +249,6 @@ public class ChatActivity extends AppCompatActivity {
 
         showChatHistory(combinedMessages);
     }
-
-    private
 
     void showChatHistory(List<ChatMessage> messages) {
         String receivedFrom = null;
@@ -425,7 +424,6 @@ public class ChatActivity extends AppCompatActivity {
                         MY_PERMISSION_REQUEST_READ_EXTERNAL_STORAGE);
             }
         } else {
-            // Request image from the gallery app
             requestImageFromGallery();
         }
     }
@@ -459,20 +457,32 @@ public class ChatActivity extends AppCompatActivity {
                         try {
                             Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),
                                     data.getData());
-                            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                            // if cant compress, then return no
-                            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
-                            String encodedImage = Base64.encodeToString(bos.toByteArray(),
-                                    Base64.DEFAULT);
-                            //Log.d(TAG, "Base64 encoded string: " + encodedImage);
-//                        mChatService = new BluetoothChatService(mHandler);
+
+                            // If you can't compress the image, then do not try sending.
+                            byte[] imageSend;
+                            try {
+                                imageSend = compressBitmap(bitmap, true);
+                            } catch (NullPointerException e) {
+                                Log.d(TAG, "Image cannot be compressed");
+                                Toast.makeText(getApplicationContext(), "Image can not be found" +
+                                                " or is too large to be sent",
+                                        Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
                             Calendar calendar = Calendar.getInstance();
                             String timeSent = sdf.format(calendar.getTime());
 
+                            if (imageSend.length > MAX_IMAGE_SIZE) {
+                                Toast.makeText(getApplicationContext(), "Image is too large",
+                                        Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
                             if (isGroupChat) {
-                                groupChatManager.sendMessage(encodedImage.getBytes(), DATA_IMAGE);
+                                groupChatManager.sendMessage(imageSend, DATA_IMAGE);
                             } else {
-                                mChatService.write(encodedImage.getBytes(), DATA_IMAGE, timeSent);
+                                mChatService.write(imageSend, DATA_IMAGE, timeSent);
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -485,18 +495,30 @@ public class ChatActivity extends AppCompatActivity {
                 if (resultCode == Activity.RESULT_OK) {
                     if (data != null) {
                         Bitmap bitmap = (Bitmap) data.getExtras().get("data");
-                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
-                        String encodedImage = Base64.encodeToString(bos.toByteArray(),
-                                Base64.DEFAULT);
-                        Log.d(TAG, "Base64 encoded string: " + encodedImage);
+
+                        byte[] cameraSend;
+                        try {
+                            cameraSend = compressBitmap(bitmap, true);
+                        } catch (Exception e) {
+                            Log.d(TAG, "Could not find the image");
+                            Toast.makeText(getApplicationContext(), "Image could not be sent",
+                                    Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        if (cameraSend.length > MAX_IMAGE_SIZE) {
+                            Toast.makeText(getApplicationContext(), "Image is too large to be sent",
+                                    Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
                         Calendar calendar = Calendar.getInstance();
                         String timeSent = sdf.format(calendar.getTime());
 
                         if (isGroupChat) {
-                            groupChatManager.sendMessage(encodedImage.getBytes(), DATA_IMAGE);
+                            groupChatManager.sendMessage(cameraSend, DATA_IMAGE);
                         } else {
-                            mChatService.write(encodedImage.getBytes(), DATA_IMAGE, timeSent);
+                            mChatService.write(cameraSend, DATA_IMAGE, timeSent);
                         }
                     }
                 }
@@ -516,7 +538,6 @@ public class ChatActivity extends AppCompatActivity {
     private void connectDevice(String macAddress) {
         BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(macAddress);
         mConnectedDeviceAddress = macAddress;
-        // Attempt to connect to the device
         mChatService.connect(device);
     }
 
@@ -628,7 +649,7 @@ public class ChatActivity extends AppCompatActivity {
                     prevSendTime = time;
 
                     imageBitmap = (Bitmap) imageWriteInstance.getData();
-                    byte[] writeDecodedStringArray = compressBitmap(imageBitmap);
+                    byte[] writeDecodedStringArray = compressBitmap(imageBitmap, false);
 
                     if (isGroupChat) {
 
@@ -656,7 +677,7 @@ public class ChatActivity extends AppCompatActivity {
                         imageBitmap = (Bitmap) msgImgData.getData();
 
                         // Compress and store in database
-                        byte[] decodedStringArray = compressBitmap(imageBitmap);
+                        byte[] decodedStringArray = compressBitmap(imageBitmap, false);
 
                         if (isGroupChat) {
 
