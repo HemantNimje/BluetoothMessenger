@@ -217,6 +217,7 @@ public class ChatActivity extends AppCompatActivity {
             return;
         } else if (isGroupChat) {
             groupChatManager.startConnection();
+            db.insertGroupName(groupChatManager.getGroupId(), groupChatManager.getGroupUserNames());
             return;
         }
 
@@ -773,7 +774,6 @@ public class ChatActivity extends AppCompatActivity {
         if (isGroupChat) {
             Log.d(TAG, "setting up group chat");
             groupChatManager = new GroupChat(users, mHandler);
-            db.insertGroupName(groupChatManager.getGroupId(), groupChatManager.getGroupUserNames());
         } else {
             Log.d(TAG, "setting up single chat");
             mChatService = new BluetoothChatService(mHandler);
