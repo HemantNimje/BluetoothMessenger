@@ -107,8 +107,8 @@ class ChatMessages extends SQLiteOpenHelper {
                 GROUP_CHAT_USER_TABLE + USERS_COLUMNS;
 
 
-        Log.i(TAG, CREATE_RECEIVED_MESSAGES_TABLE);
-        Log.i(TAG, CREATE_SENT_MESSAGES_TABLE);
+        Log.d(TAG, CREATE_RECEIVED_MESSAGES_TABLE);
+        Log.d(TAG, CREATE_SENT_MESSAGES_TABLE);
         Log.d(TAG, CREATE_USER_NAMES_TABLE);
         Log.d(TAG, CREATE_GROUP_CHAT_USER_TABLE);
 
@@ -134,17 +134,15 @@ class ChatMessages extends SQLiteOpenHelper {
         insertValues.put(TIME_STAMP, timeStamp);
         insertValues.put(USER_ID, userId);
 
-        Log.d(TAG, "INSERTING MESSAGE");
         if (dataType == DATA_TEXT) {
             insertValues.put(MESSAGE, (String) message);
         }
         else if (dataType == DATA_IMAGE) {
-            Log.d(TAG, "SAVING IMAGE TO DB");
             insertValues.put(IMAGE, (byte []) message);
         }
 
         try {
-            db.insert(tableType, null, insertValues);
+            long d = db.insert(tableType, null, insertValues);
         } catch (SQLiteConstraintException e) {
             Log.e(TAG, "Error inserting messages");
         }
@@ -193,9 +191,9 @@ class ChatMessages extends SQLiteOpenHelper {
         Cursor cursor = db.rawQuery(query, null);
 
         if(cursor.moveToFirst()) {
-                if (cursor.getString(0).equals(macAddress)) {
-                    return true;
-                }
+            if (cursor.getString(0).equals(macAddress)) {
+                return true;
+            }
         }
 
         cursor.close();
@@ -207,6 +205,8 @@ class ChatMessages extends SQLiteOpenHelper {
         ArrayList<ChatMessage> userMessages = new ArrayList<>();
         String select = "SELECT Time, Message, Image FROM " + tableType +
                 " WHERE " + USER_ID + " = '" + userId + "'";
+
+        Log.d(TAG, select);
 
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery(select, null);
@@ -222,6 +222,7 @@ class ChatMessages extends SQLiteOpenHelper {
                     Bitmap bpImage = BitmapFactory.decodeByteArray(image, 0, image.length);
                     userMessages.add(new ChatMessage(date, bpImage));
                 } else {
+                    Log.d(TAG, "Adding Message");
                     userMessages.add(new ChatMessage(date, message));
                 }
             } while (cursor.moveToNext());

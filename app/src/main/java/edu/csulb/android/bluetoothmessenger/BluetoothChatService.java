@@ -315,6 +315,10 @@ public class BluetoothChatService {
                 ByteArrayOutputStream tempOutputStream = new ByteArrayOutputStream();
                 ByteBuffer tempBuffer = ByteBuffer.allocate(bytes.length + 8);
                 MessageInstance dataSent = new MessageInstance();
+                String macAddress = mSocket.getRemoteDevice().getAddress();
+                String userName = mSocket.getRemoteDevice().getName();
+                dataSent.setMacAddress(macAddress);
+                dataSent.setUserName(userName);
                 if (datatype == DATA_IMAGE) {
 
                     System.out.println("IMAGE WRITE");

@@ -253,14 +253,12 @@ public class ChatActivity extends AppCompatActivity {
 
     void showChatHistory(List<ChatMessage> messages) {
         String receivedFrom = null;
-        Log.d(TAG, "No messages");
         for (ChatMessage message : messages) {
             Log.d(TAG, message.user);
             Log.d(TAG, Integer.toString(message.dataType));
             if (message.user.equals("Me")) {
 
                 if (message.dataType == DATA_IMAGE) {
-                    Log.d(TAG, "WRITE IMAGE DISPLAY");
                     chatMessageAdapter.add(new MessageInstance(true, message.image));
                 } else {
                     chatMessageAdapter.add(new MessageInstance(true,
@@ -268,9 +266,7 @@ public class ChatActivity extends AppCompatActivity {
                                     + message.timeStamp + ")"));
                 }
             } else {
-
                 if (message.dataType == DATA_IMAGE) {
-                    Log.d(TAG, "READ IMAGE DISPLAY");
                     chatMessageAdapter.add(new MessageInstance(false, message.image));
                 } else {
                     chatMessageAdapter.add(new MessageInstance(false,
