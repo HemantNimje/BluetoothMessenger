@@ -460,6 +460,7 @@ public class ChatActivity extends AppCompatActivity {
                             Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),
                                     data.getData());
                             ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                            // if cant compress, then return no
                             bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
                             String encodedImage = Base64.encodeToString(bos.toByteArray(),
                                     Base64.DEFAULT);
@@ -594,6 +595,7 @@ public class ChatActivity extends AppCompatActivity {
                     }
                     prevSendTime = time;
 
+                    Log.d(TAG, "Audio should be stored at: " + fileName);
                     File f = new File(fileName);
                     chatMessageAdapter.add(new MessageInstance(true, f));
                     chatMessageAdapter.notifyDataSetChanged();
@@ -988,7 +990,6 @@ public class ChatActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, "Recording failed", e);
         }
-
     }
 
     /*
@@ -1001,7 +1002,7 @@ public class ChatActivity extends AppCompatActivity {
             mRecorder.reset();
             mRecorder.release();
             mRecorder = null;
-            if (mChatService != null) {
+            if (mChatService != null || groupChatManager != null) {
                 try {
                     File f = new File(fileName);
                     FileInputStream fis = new FileInputStream(fileName);
