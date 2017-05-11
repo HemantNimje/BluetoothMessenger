@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
 
@@ -74,14 +75,12 @@ public class GroupChat {
         deviceConnections.put(macAddress, true);
     }
 
-    public void sendTextMessage(byte[] message) {
-        Calendar calendar = Calendar.getInstance();
-        //String timeSent = sdf.format(calendar.getTime());
 
+    public void sendMessage(byte[] message, int messageType) {
         String timeSent = Integer.toString(Calendar.getInstance().get(Calendar.MILLISECOND));
         Log.d(TAG, "Time sent: " + timeSent);
         for (BluetoothChatService service: chatSockets) {
-            service.write(message, DATA_TEXT, timeSent);
+            service.write(message, messageType, timeSent);
         }
     }
 

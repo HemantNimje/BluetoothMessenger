@@ -467,7 +467,12 @@ public class ChatActivity extends AppCompatActivity {
 //                        mChatService = new BluetoothChatService(mHandler);
                             Calendar calendar = Calendar.getInstance();
                             String timeSent = sdf.format(calendar.getTime());
-                            mChatService.write(encodedImage.getBytes(), DATA_IMAGE, timeSent);
+
+                            if (isGroupChat) {
+                                groupChatManager.sendMessage(encodedImage.getBytes(), DATA_IMAGE);
+                            } else {
+                                mChatService.write(encodedImage.getBytes(), DATA_IMAGE, timeSent);
+                            }
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -486,7 +491,12 @@ public class ChatActivity extends AppCompatActivity {
                         Log.d(TAG, "Base64 encoded string: " + encodedImage);
                         Calendar calendar = Calendar.getInstance();
                         String timeSent = sdf.format(calendar.getTime());
-                        mChatService.write(encodedImage.getBytes(), DATA_IMAGE, timeSent);
+
+                        if (isGroupChat) {
+                            groupChatManager.sendMessage(encodedImage.getBytes(), DATA_IMAGE);
+                        } else {
+                            mChatService.write(encodedImage.getBytes(), DATA_IMAGE, timeSent);
+                        }
                     }
                 }
                 break;
@@ -588,7 +598,11 @@ public class ChatActivity extends AppCompatActivity {
                     chatMessageAdapter.add(new MessageInstance(true, f));
                     chatMessageAdapter.notifyDataSetChanged();
 
-                    db.insertSentMessage(time, connectedMacAddress, f.toString(), DATA_AUDIO);
+                    if (isGroupChat) {
+
+                    } else {
+                        db.insertSentMessage(time, connectedMacAddress, f.toString(), DATA_AUDIO);
+                    }
 
                     break;
 
@@ -614,9 +628,13 @@ public class ChatActivity extends AppCompatActivity {
                     imageBitmap = (Bitmap) imageWriteInstance.getData();
                     byte[] writeDecodedStringArray = compressBitmap(imageBitmap);
 
-                    db.insertSentMessage(imageWriteTime, userMacAddress, writeDecodedStringArray,
-                            DATA_IMAGE);
-                    Log.d(TAG, "Inserted write image into DB");
+                    if (isGroupChat) {
+
+                    } else {
+                        db.insertSentMessage(imageWriteTime, userMacAddress, writeDecodedStringArray,
+                                DATA_IMAGE);
+                        Log.d(TAG, "Inserted write image into DB");
+                    }
 
                     if (imageBitmap != null) {
                         chatMessageAdapter.add(new MessageInstance(true, imageBitmap));
@@ -638,8 +656,12 @@ public class ChatActivity extends AppCompatActivity {
                         // Compress and store in database
                         byte[] decodedStringArray = compressBitmap(imageBitmap);
 
-                        db.insertReceivedMessage(readImageTime, userMacAddress, decodedStringArray,
-                                DATA_IMAGE);
+                        if (isGroupChat) {
+
+                        } else {
+                            db.insertReceivedMessage(readImageTime, userMacAddress, decodedStringArray,
+                                    DATA_IMAGE);
+                        }
                         Log.d(TAG, "Image stored in db");
 
                         if (imageBitmap != null) {
@@ -665,8 +687,12 @@ public class ChatActivity extends AppCompatActivity {
                     String message = new String(readBuf);
 
                     // modify this for group chat
-                    db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
-                            message, DATA_TEXT);
+                    if (isGroupChat) {
+
+                    } else {
+                        db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
+                                message, DATA_TEXT);
+                    }
 
                     String displayMessage = msgTextData.getUserName() + ": " + message + "\n"
                             + "(" + readTime + ")";
@@ -696,8 +722,13 @@ public class ChatActivity extends AppCompatActivity {
                             fos.close();
                             chatMessageAdapter.add(new MessageInstance(false, new File(filename)));
                             chatMessageAdapter.notifyDataSetChanged();
-                            db.insertReceivedMessage(readTime, connectedMacAddress, filename.toString()
-                                    , DATA_AUDIO);
+
+                            if (isGroupChat) {
+
+                            } else {
+                                db.insertReceivedMessage(readTime, connectedMacAddress, filename.toString()
+                                        , DATA_AUDIO);
+                            }
                         }
                     } catch (Exception e) {
                         Toast.makeText(ChatActivity.this, "Could not save the file",
@@ -855,7 +886,8 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         if (message.length() > 0) {
-            groupChatManager.sendTextMessage(message.getBytes());
+            //groupChatManager.sendTextMessage(message.getBytes());
+            groupChatManager.sendMessage(message.getBytes(), DATA_TEXT);
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
             mEditText.setText(mOutStringBuffer);
@@ -977,7 +1009,11 @@ public class ChatActivity extends AppCompatActivity {
                     fis.read(buff);
                     Calendar calendar = Calendar.getInstance();
                     String timeSent = sdf.format(calendar.getTime());
-                    mChatService.write(buff, DATA_AUDIO, timeSent);
+                    if (isGroupChat) {
+                        groupChatManager.sendMessage(buff, DATA_AUDIO);
+                    } else {
+                        mChatService.write(buff, DATA_AUDIO, timeSent);
+                    }
                     fis.close();
                 } catch (Exception e) {
                     Log.e(TAG, "Could not open stream to save data", e);
