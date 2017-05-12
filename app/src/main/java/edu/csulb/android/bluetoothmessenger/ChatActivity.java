@@ -19,7 +19,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -27,7 +26,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -35,7 +33,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -71,8 +68,6 @@ public class ChatActivity extends AppCompatActivity {
     private static final int SELECT_IMAGE = 11;
     private static final int MY_PERMISSION_REQUEST_READ_EXTERNAL_STORAGE = 2;
     private static final int MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 100;
-    private String selectedImagePath;
-    private ImageView selectedImage;
 
     private static String mFileName = null;
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
@@ -87,8 +82,6 @@ public class ChatActivity extends AppCompatActivity {
     public static final int MESSAGE_STATE_CHANGE = 1;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
-
-    private ArrayAdapter<String> mConversationArrayAdapter;
 
     private String mConnectedDeviceName = null;
     private String mConnectedDeviceAddress = null;
@@ -133,17 +126,15 @@ public class ChatActivity extends AppCompatActivity {
             isGroupChat = true;
         }
 
-        Log.d(TAG, "Group chat is:" + isGroupChat);
         init();
 
         if (!mBluetoothAdapter.isEnabled()) {
-
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-
         } else if (mChatService == null || groupChatManager == null) {
             setupChat();
         }
+
         // Record to the external cache directory for visibility
         mFileName = getExternalCacheDir().getAbsolutePath();
         mFileName += "/audiorecordtest.3gp";

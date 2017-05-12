@@ -25,10 +25,8 @@ import static edu.csulb.android.bluetoothmessenger.ChatMessages.orderGroupChat;
 public class MainActivity extends AppCompatActivity {
 
     private ListView chatHistoryListView;
-    private ArrayList<String> previousChatNames;
     public static BluetoothAdapter mBluetoothAdapter = null;
     private static final int REQUEST_ENABLE_BT = 1;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,10 +55,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-        // Start chat history and allow user to start connection
-        // Currently ChatHistory is a stub to test that messages are in the
-        // correct order
         chatHistoryListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position,
@@ -72,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
     }
 
     // Update chat history when you return
@@ -80,7 +73,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         ChatMessages db = new ChatMessages(getApplicationContext());
-        previousChatNames = (ArrayList<String>) db.getPreviousChatNames(USER_NAMES_TABLE);
+        ArrayList<String> previousChatNames =
+                (ArrayList<String>) db.getPreviousChatNames(USER_NAMES_TABLE);
 
         ArrayList<String> previousGroupChatNames = (ArrayList<String>) db
                 .getPreviousChatNames(GROUP_CHAT_USER_TABLE);
@@ -98,18 +92,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        //noinspection SimplifiableIfStatement
+
         if (id == R.id.action_settings) {
             return true;
         }

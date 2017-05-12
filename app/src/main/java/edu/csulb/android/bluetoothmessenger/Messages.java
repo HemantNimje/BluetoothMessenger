@@ -38,7 +38,6 @@ import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 // has sent you.
 // where each Message contains a time and message.
 
-
 class ChatMessage {
     String timeStamp;
     String message;
@@ -378,6 +377,9 @@ class ChatMessages extends SQLiteOpenHelper {
         for (String group : groupChat) {
             String[] usersSplitUp = group.split("[\\r?\\n]+");
             String matchUserToAddress = "";
+
+            // First half of the list maps to user names and the second
+            // half maps to mac addresses
             for(int i = 0, j = usersSplitUp.length/2; j < usersSplitUp.length; i++, j++ ) {
                 if (j == usersSplitUp.length - 1) {
                     matchUserToAddress += usersSplitUp[i] + "\n" + usersSplitUp[j];

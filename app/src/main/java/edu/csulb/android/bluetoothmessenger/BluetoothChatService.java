@@ -4,7 +4,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -26,6 +25,9 @@ import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_AUDIO;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
 import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
+
+// Taken from Google's blue tooth chat program
+// We have modified it to fit our uses.
 
 public class BluetoothChatService {
 

@@ -11,10 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
-import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
-
-
 /**
  *  Class for mangaging multiple connections at once.
  *  Before using the class, ensure that bluetooth is turned on

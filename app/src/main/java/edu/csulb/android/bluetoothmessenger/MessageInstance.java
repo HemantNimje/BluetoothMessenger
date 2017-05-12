@@ -83,7 +83,7 @@ public class MessageInstance {
     public MessageInstance(boolean side, String message, String macAddress) {
         this.send = side;
         this.message = message;
-        macAddress = macAddress;
+        this.macAddress = macAddress;
         imageBitmap = null;
         audioFile = null;
     }

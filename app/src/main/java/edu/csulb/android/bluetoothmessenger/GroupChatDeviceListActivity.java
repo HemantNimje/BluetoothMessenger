@@ -77,7 +77,6 @@ public class GroupChatDeviceListActivity extends Activity {
 
                 ArrayList<UserInfo> usersForGroupChat = new ArrayList<>();
                 for (int i = 0; i < selectedDevices.size(); i++) {
-                    //Toast.makeText(getApplicationContext(), selectedDevices.get(i).getAddress(), Toast.LENGTH_SHORT).show();
                     Log.d(TAG, "Checkboxes get: " + selectedDevices.get(i).getName());
                     String name = selectedDevices.get(i).getName();
                     String macAddress = selectedDevices.get(i).getAddress();
@@ -195,8 +194,6 @@ public class GroupChatDeviceListActivity extends Activity {
                     } else {
                         finalHolder.deviceCheckBox.setChecked(false);
                     }
-                    //boolean checkBoxStatus = deviceList.get(position).isSelected();
-                    //Toast.makeText(getApplicationContext(), " " + checkBoxStatus, Toast.LENGTH_SHORT).show();
                     mNewDeviceArrayAdapter.notifyDataSetChanged();
 
                 }
