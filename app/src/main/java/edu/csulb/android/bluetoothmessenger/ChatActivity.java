@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 
 import static android.os.Environment.getExternalStorageDirectory;
@@ -112,6 +113,8 @@ public class ChatActivity extends AppCompatActivity {
 
     private final static String TAG = "ChatActivity";
     private final static int MAX_IMAGE_SIZE = 200000;
+
+    private HashMap<String, String> macToUser = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -236,9 +239,21 @@ public class ChatActivity extends AppCompatActivity {
             Log.d(TAG, "Users is null");
             return;
         } else if (isGroupChat) {
+            for (UserInfo user : users) {
+                macToUser.put(user.getMacAddress(), user.getName());
+            }
             Log.d(TAG, "Group chat");
             if (db.isUserInDb(groupChatManager.getGroupId(), GROUP_CHAT_USER_TABLE)) {
                 Log.d(TAG, "Group is in database");
+                List<ChatMessage> readMessages = getAllGroupMessages(groupChatManager.getGroupId(),
+                        "Received");
+                List<ChatMessage> sentMessages = getAllGroupMessages(groupChatManager.getGroupId(),
+                        "Sent");
+
+                List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages,
+                        sentMessages);
+                showChatHistory(combinedMessages);
+
             } else {
                 Log.d(TAG, "Group is not in database");
             }
@@ -321,6 +336,26 @@ public class ChatActivity extends AppCompatActivity {
                     message.user = userName;
                 }
                 messages.add(message);
+            }
+        }
+        return messages;
+    }
+
+    List<ChatMessage> getAllGroupMessages(String groupId, String messageType) {
+        List<ChatMessage> messages;
+
+        if (messageType.equals("Sent")) {
+            messages = db.retrieveSentMessages(groupId);
+        } else {
+            messages = db.retrieveReceivedGroupMessages(groupId);
+        }
+
+        for (ChatMessage message : messages) {
+            Log.d(TAG, message.user + ":" + message.message);
+            if (messageType.equals("Sent")) {
+                message.user = "Me";
+            } else {
+                message.user = macToUser.get(message.user);
             }
         }
         return messages;
@@ -592,10 +627,10 @@ public class ChatActivity extends AppCompatActivity {
 
                     if (isGroupChat) {
                         // fill in logic for groupchat db
-                        db.insertSentGroupMessage(time, groupChatManager.getGroupId(), writeMessage,
+                        db.insertSentGroupMessage(txtWriteTime, groupChatManager.getGroupId(), writeMessage,
                                 DATA_TEXT, groupChatManager.getGroupId());
                     } else {
-                        db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage, DATA_TEXT);
+                        db.insertSentMessage(txtWriteTime, mConnectedDeviceAddress, writeMessage, DATA_TEXT);
                     }
 
                     String writeDisplayMessage = "Me: " + writeMessage + "\n"

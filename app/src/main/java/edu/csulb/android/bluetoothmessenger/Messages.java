@@ -232,10 +232,17 @@ class ChatMessages extends SQLiteOpenHelper {
         return false;
     }
 
-    private ArrayList<ChatMessage> retrieveMessages(String userId, String tableType) {
+    private ArrayList<ChatMessage> retrieveMessages(String userId, String tableType,
+                                                    boolean isGroupReceived) {
         ArrayList<ChatMessage> userMessages = new ArrayList<>();
         String select = "SELECT Time, Message, Image, Audio FROM " + tableType +
                 " WHERE " + USER_ID + " = '" + userId + "'";
+
+        if (isGroupReceived) {
+            select = "SELECT " + TIME_STAMP + ", " + MESSAGE + ", " + IMAGE
+                    + ", " + AUDIO + ", " + USER_ID + " FROM " + tableType +
+                    " WHERE " + GROUP_ID + " = '" + userId + "'";
+        }
 
         Log.d(TAG, select);
 
@@ -244,22 +251,34 @@ class ChatMessages extends SQLiteOpenHelper {
         Log.d(TAG, "retrieving messages");
         if(cursor.moveToFirst()) {
             do {
-                String date = cursor.getString(0);
-                String message = cursor.getString(1);
-                byte[] image = cursor.getBlob(2);
-                String audio = cursor.getString(3);
+                String date = cursor.getString(cursor.getColumnIndex(TIME_STAMP));
+                String message = cursor.getString(cursor.getColumnIndex(MESSAGE));
+                byte[] image = cursor.getBlob(cursor.getColumnIndex(IMAGE));
+                String audio = cursor.getString(cursor.getColumnIndex(AUDIO));
+                String user =  null;
 
+                if(isGroupReceived) {
+                    user = cursor.getString(cursor.getColumnIndex(USER_ID));
+                }
+
+                ChatMessage cm = null;
                 if (image != null) {
                     Log.d(TAG, "Message is null, adding image");
                     Bitmap bpImage = BitmapFactory.decodeByteArray(image, 0, image.length);
-                    userMessages.add(new ChatMessage(date, bpImage));
+                    cm = new ChatMessage(date, bpImage);
                 } else if (message != null){
                     Log.d(TAG, "Adding Message");
-                    userMessages.add(new ChatMessage(date, message));
+                    cm = new ChatMessage(date, message);
                 } else {
                     Log.d(TAG, "Adding audio file");
-                    userMessages.add(new ChatMessage(date, new File(audio)));
+                    cm = new ChatMessage(date, new File(audio));
                 }
+
+                if (isGroupReceived) {
+                    cm.user = user;
+                }
+                userMessages.add(cm);
+
             } while (cursor.moveToNext());
         }
         cursor.close();
@@ -270,12 +289,17 @@ class ChatMessages extends SQLiteOpenHelper {
 
     ArrayList<ChatMessage> retrieveReceivedMessages(String userId) {
         Log.d(TAG, "retrieving received messages");
-        return retrieveMessages(userId, RECEIVED_MESSAGES_TABLE);
+        return retrieveMessages(userId, RECEIVED_MESSAGES_TABLE, false);
     }
 
     ArrayList<ChatMessage> retrieveSentMessages(String userId) {
         Log.d(TAG, "retrieving sent messages");
-        return retrieveMessages(userId, SENT_MESSAGES_TABLE);
+        return retrieveMessages(userId, SENT_MESSAGES_TABLE, false);
+    }
+
+    ArrayList<ChatMessage> retrieveReceivedGroupMessages(String groupId) {
+        Log.d(TAG, "retrieving received group messages");
+        return retrieveMessages(groupId, RECEIVED_MESSAGES_TABLE, true);
     }
 
     // used for testing purposes, remove later.
