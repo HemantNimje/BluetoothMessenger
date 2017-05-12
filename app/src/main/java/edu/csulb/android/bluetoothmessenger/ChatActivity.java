@@ -694,10 +694,11 @@ public class ChatActivity extends AppCompatActivity {
                     byte[] writeDecodedStringArray = compressBitmap(imageBitmap, false);
 
                     if (isGroupChat) {
-
+                        db.insertSentGroupMessage(imageWriteTime, groupChatManager.getGroupId(),
+                                writeDecodedStringArray, DATA_IMAGE, groupChatManager.getGroupId());
                     } else {
-                        db.insertSentMessage(imageWriteTime, userMacAddress, writeDecodedStringArray,
-                                DATA_IMAGE);
+                        db.insertSentMessage(imageWriteTime, userMacAddress,
+                                writeDecodedStringArray, DATA_IMAGE);
                         Log.d(TAG, "Inserted write image into DB");
                     }
 
@@ -722,7 +723,8 @@ public class ChatActivity extends AppCompatActivity {
                         byte[] decodedStringArray = compressBitmap(imageBitmap, false);
 
                         if (isGroupChat) {
-
+                            db.insertReceivedGroupMessage(readImageTime, userMacAddress,
+                                    decodedStringArray, DATA_IMAGE, groupChatManager.getGroupId());
                         } else {
                             db.insertReceivedMessage(readImageTime, userMacAddress, decodedStringArray,
                                     DATA_IMAGE);
