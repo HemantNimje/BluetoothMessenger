@@ -236,7 +236,8 @@ class ChatMessages extends SQLiteOpenHelper {
                                                     boolean isGroupReceived) {
         ArrayList<ChatMessage> userMessages = new ArrayList<>();
         String select = "SELECT Time, Message, Image, Audio FROM " + tableType +
-                " WHERE " + USER_ID + " = '" + userId + "'";
+                " WHERE " + USER_ID + " = '" + userId + "' AND " + GROUP_ID
+                + " IS NULL";
 
         if (isGroupReceived) {
             select = "SELECT " + TIME_STAMP + ", " + MESSAGE + ", " + IMAGE
@@ -295,6 +296,10 @@ class ChatMessages extends SQLiteOpenHelper {
     ArrayList<ChatMessage> retrieveSentMessages(String userId) {
         Log.d(TAG, "retrieving sent messages");
         return retrieveMessages(userId, SENT_MESSAGES_TABLE, false);
+    }
+
+    ArrayList<ChatMessage> retrieveSentGroupMessages(String groupId) {
+        return retrieveMessages(groupId, SENT_MESSAGES_TABLE, true);
     }
 
     ArrayList<ChatMessage> retrieveReceivedGroupMessages(String groupId) {

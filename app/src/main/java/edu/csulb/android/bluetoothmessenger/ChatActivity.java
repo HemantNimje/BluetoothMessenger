@@ -345,7 +345,7 @@ public class ChatActivity extends AppCompatActivity {
         List<ChatMessage> messages;
 
         if (messageType.equals("Sent")) {
-            messages = db.retrieveSentMessages(groupId);
+            messages = db.retrieveSentGroupMessages(groupId);
         } else {
             messages = db.retrieveReceivedGroupMessages(groupId);
         }
