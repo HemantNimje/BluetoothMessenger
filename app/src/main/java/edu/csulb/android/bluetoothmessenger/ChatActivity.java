@@ -617,11 +617,11 @@ public class ChatActivity extends AppCompatActivity {
                     prevSendTime = time;
 
                     if (isGroupChat) {
-                        // fill in logic for groupchat db
-                        db.insertSentGroupMessage(txtWriteTime, groupChatManager.getGroupId(), writeMessage,
-                                DATA_TEXT, groupChatManager.getGroupId());
+                        db.insertSentGroupMessage(txtWriteTime, groupChatManager.getGroupId(),
+                                writeMessage, DATA_TEXT, groupChatManager.getGroupId());
                     } else {
-                        db.insertSentMessage(txtWriteTime, mConnectedDeviceAddress, writeMessage, DATA_TEXT);
+                        db.insertSentMessage(txtWriteTime, mConnectedDeviceAddress, writeMessage,
+                                DATA_TEXT);
                     }
 
                     String writeDisplayMessage = "Me: " + writeMessage + "\n"
@@ -667,7 +667,6 @@ public class ChatActivity extends AppCompatActivity {
                     MessageInstance imageWriteInstance = (MessageInstance) msg.obj;
                     String userMacAddress = imageWriteInstance.getMacAddress();
 
-                    // Used for DB storage
                     Calendar ImageCalendar = Calendar.getInstance();
                     String imageWriteTime = sdf.format(ImageCalendar.getTime());
 
@@ -738,7 +737,7 @@ public class ChatActivity extends AppCompatActivity {
                 case MESSAGE_READ_TEXT:
                     MessageInstance msgTextData = (MessageInstance) msg.obj;
                     byte[] readBuf = (byte[]) msgTextData.getData();
-                    // construct a string from the valid bytes in the buffer
+
                     Calendar cal = Calendar.getInstance();
                     String readTime = sdf.format(cal.getTime());
 
@@ -786,8 +785,8 @@ public class ChatActivity extends AppCompatActivity {
                                 db.insertReceivedGroupMessage(readTime, connectedMacAddress, filename,
                                         DATA_AUDIO, groupChatManager.getGroupId());
                             } else {
-                                db.insertReceivedMessage(readTime, connectedMacAddress, filename.toString()
-                                        , DATA_AUDIO);
+                                db.insertReceivedMessage(readTime, connectedMacAddress, filename,
+                                        DATA_AUDIO);
                             }
                         }
                     } catch (Exception e) {
@@ -818,15 +817,12 @@ public class ChatActivity extends AppCompatActivity {
 
                     if (isGroupChat) {
                         groupChatManager.setConnectionAsTrue(deviceAddress);
-                        Log.d(TAG, "Group chat is on" + isGroupChat);
-                        Log.d(TAG, "Users size:" + users.size());
 
                         if (groupChatManager.isConnectedToAll()) {
                             Log.d(TAG, "Connected to all in group");
                             db.insertGroupName(groupChatManager.getGroupId(),
                                     groupChatManager.getGroupUserNames());
                         }
-
                         break;
                     }
 
@@ -869,26 +865,6 @@ public class ChatActivity extends AppCompatActivity {
         }
     };
 
-    public String getPath(Uri uri) {
-        if (uri == null) {
-            Toast.makeText(getApplicationContext(), "Uri is null", Toast.LENGTH_SHORT).show();
-            return null;
-        }
-
-        String[] projection = {MediaStore.Images.Media.DATA};
-        Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
-        if (cursor != null) {
-            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            String path = cursor.getString(column_index);
-            cursor.close();
-            return path;
-        }
-        // this is our fallback here
-        return uri.getPath();
-    }
-
-
     private void setupChat() {
         // Initialize the compose field with a listener for the return key
         mEditText.setOnEditorActionListener(mWriteListener);
@@ -930,11 +906,8 @@ public class ChatActivity extends AppCompatActivity {
 
         // Check that there's actually something to send
         if (message.length() > 0) {
-
             System.out.println("Message Length = " + message.length());
-            // Get the message bytes and tell the BluetoothChatService to write
-            byte[] send = message.getBytes();
-//            mChatService.write(send);
+
             Calendar calendar = Calendar.getInstance();
             String timeSent = sdf.format(calendar.getTime());
             mChatService.write(message.getBytes(), DATA_TEXT, timeSent);
@@ -953,8 +926,8 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         if (message.length() > 0) {
-            //groupChatManager.sendTextMessage(message.getBytes());
             groupChatManager.sendMessage(message.getBytes(), DATA_TEXT);
+
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
             mEditText.setText(mOutStringBuffer);
@@ -1087,38 +1060,4 @@ public class ChatActivity extends AppCompatActivity {
             }
         }
     }
-
-    /*
-    * Handle record play
-    * */
-    private void onPlay(boolean start) {
-        if (start) {
-            startPlaying();
-        } else {
-            stopPlaying();
-        }
-    }
-
-    /*
-    * Create new MediaPlayer object. Set its resource to file and start playback
-    * */
-    private void startPlaying() {
-        mPlayer = new MediaPlayer();
-        try {
-            mPlayer.setDataSource(mFileName);
-            mPlayer.prepare();
-            mPlayer.start();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, "prepare() failed");
-        }
-    }
-
-    /*
-    * Release he player and reset it to null
-    * */
-    private void stopPlaying() {
-        mPlayer.release();
-        mPlayer = null;
-    }
-
 }
