@@ -663,9 +663,10 @@ public class ChatActivity extends AppCompatActivity {
                     chatMessageAdapter.notifyDataSetChanged();
 
                     if (isGroupChat) {
-
+                        db.insertSentGroupMessage(AudioWriteTime, groupChatManager.getGroupId(), f.toString(),
+                                DATA_AUDIO, groupChatManager.getGroupId());
                     } else {
-                        db.insertSentMessage(time, connectedMacAddress, f.toString(), DATA_AUDIO);
+                        db.insertSentMessage(AudioWriteTime, connectedMacAddress, f.toString(), DATA_AUDIO);
                     }
 
                     break;
@@ -789,7 +790,8 @@ public class ChatActivity extends AppCompatActivity {
                             chatMessageAdapter.notifyDataSetChanged();
 
                             if (isGroupChat) {
-
+                                db.insertReceivedGroupMessage(readTime, connectedMacAddress, filename,
+                                        DATA_AUDIO, groupChatManager.getGroupId());
                             } else {
                                 db.insertReceivedMessage(readTime, connectedMacAddress, filename.toString()
                                         , DATA_AUDIO);
