@@ -26,7 +26,8 @@
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/AppTheme.NoActionBar"
+            android:configChanges="orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -37,7 +38,8 @@
         <activity
             android:name=".ProfileActivity"
             android:label="@string/title_profile"
-            android:windowSoftInputMode="adjustResize|stateAlwaysHidden">
+            android:windowSoftInputMode="adjustResize|stateAlwaysHidden"
+            android:configChanges="orientation|screenSize">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
@@ -45,7 +47,7 @@
 
         <!-- Chat activity -->
 
-        <activity android:name=".ChatActivity">
+        <activity android:name=".ChatActivity" android:configChanges="orientation|screenSize">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
@@ -54,13 +56,15 @@
         <activity
             android:name=".DeviceListActivity"
             android:label="Select a device to connect"
-            android:theme="@android:style/Theme.Holo.Dialog" />
+            android:theme="@android:style/Theme.Holo.Dialog"
+            android:configChanges="orientation|screenSize"/>
 
 
         <activity
             android:name=".GroupChatDeviceListActivity"
             android:label="Choose devices"
-            android:theme="@android:style/Theme.Holo.Dialog" />
+            android:theme="@android:style/Theme.Holo.Dialog"
+            android:configChanges="orientation|screenSize"/>
 
     </application>
 

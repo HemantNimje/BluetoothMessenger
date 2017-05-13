@@ -67,7 +67,6 @@ public class ChatActivity extends AppCompatActivity {
 
     private static final int SELECT_IMAGE = 11;
     private static final int MY_PERMISSION_REQUEST_READ_EXTERNAL_STORAGE = 2;
-    private static final int MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 100;
 
     private static String mFileName = null;
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
@@ -128,10 +127,12 @@ public class ChatActivity extends AppCompatActivity {
 
         init();
 
+
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         } else if (mChatService == null || groupChatManager == null) {
+
             setupChat();
         }
 
@@ -157,9 +158,7 @@ public class ChatActivity extends AppCompatActivity {
 
         ActivityCompat.requestPermissions(this, new String[]{
                 Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO_PERMISSION);
-        ActivityCompat.requestPermissions(this, new String[]{
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE);
+
 
         final ImageButton btnRecord = (ImageButton) findViewById(R.id.btn_record);
         btnRecord.setOnClickListener(new View.OnClickListener() {
@@ -365,6 +364,7 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+
     @Override
     public void onDestroy() {
         Log.d(TAG, "destroy called");
@@ -430,12 +430,15 @@ public class ChatActivity extends AppCompatActivity {
         permissionCheck();
     }
 
+
     public void CameraPhoto(View view) {
         Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
         startActivityForResult(cameraIntent, CAMERA_REQUEST);
     }
 
     public void permissionCheck() {
+
+
         if (ContextCompat.checkSelfPermission(getApplicationContext(),
                 Manifest.permission.READ_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -972,11 +975,14 @@ public class ChatActivity extends AppCompatActivity {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // Permission is granted. Do the external storage related work here.
 
-                    requestImageFromGallery();
+//                    requestImageFromGallery();
                 } else {
                     // Permission is denied.
-                    Toast.makeText(this, "Can't Proceed. You rejected the permission.",
-                            Toast.LENGTH_SHORT).show();
+                    ActivityCompat.requestPermissions(this, new String[]
+                                    {Manifest.permission.READ_EXTERNAL_STORAGE},
+                            MY_PERMISSION_REQUEST_READ_EXTERNAL_STORAGE);
+//                    Toast.makeText(this, "Can't Proceed. You rejected the permission.",
+//                            Toast.LENGTH_SHORT).show();
                 }
             }
             break;
