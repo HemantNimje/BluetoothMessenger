@@ -6,12 +6,10 @@ import android.os.Handler;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static edu.csulb.android.bluetoothmessenger.ChatActivity.DATATYPE_TEXT;
-
 
 /**
  *  Class for mangaging multiple connections at once.
@@ -24,6 +22,7 @@ public class GroupChat {
     List<UserInfo> userNames;
     HashMap<String, Boolean> deviceConnections;
     String groupId = "";
+    String groupUserNames = "";
     private final static String TAG = "GroupChat";
 
     GroupChat(List<UserInfo> users, Handler handler) {
@@ -33,12 +32,22 @@ public class GroupChat {
             BluetoothChatService chatService = new BluetoothChatService(handler);
             deviceConnections.put(user.macAddress, false);
             groupId += user.macAddress + "\n";
+            groupUserNames += user.name + "\n";
 
             if (chatService.getState() == BluetoothChatService.STATE_NONE) {
                 chatService.start();
             }
             chatSockets.add(chatService);
         }
+    }
+
+    public boolean isConnectedToAll() {
+        for (Boolean isConnected : deviceConnections.values()) {
+            if (!isConnected) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // Each user will attempt to connect to every other user
@@ -71,9 +80,12 @@ public class GroupChat {
         deviceConnections.put(macAddress, true);
     }
 
-    public void sendTextMessage(byte[] message) {
+
+    public void sendMessage(byte[] message, int messageType) {
+        String timeSent = Integer.toString(Calendar.getInstance().get(Calendar.MILLISECOND));
+        Log.d(TAG, "Time sent: " + timeSent);
         for (BluetoothChatService service: chatSockets) {
-            service.write(message, DATATYPE_TEXT);
+            service.write(message, messageType, timeSent);
         }
     }
 
@@ -83,7 +95,6 @@ public class GroupChat {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -97,5 +108,8 @@ public class GroupChat {
     // separated by a newline.
     public String getGroupId() {
         return groupId;
+    }
+    public String getGroupUserNames() {
+        return groupUserNames;
     }
 }

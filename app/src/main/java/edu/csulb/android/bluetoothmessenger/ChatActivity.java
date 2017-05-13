@@ -19,7 +19,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -27,7 +26,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -35,24 +33,33 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 
 import static android.os.Environment.getExternalStorageDirectory;
 import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.DEVICE_ADDRESS;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_READ_AUDIO;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_READ_IMAGE;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_READ_TEXT;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_AUDIO;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_IMAGE;
+import static edu.csulb.android.bluetoothmessenger.BluetoothChatService.MESSAGE_WRITE_TEXT;
+import static edu.csulb.android.bluetoothmessenger.ChatMessages.GROUP_CHAT_USER_TABLE;
+import static edu.csulb.android.bluetoothmessenger.ChatMessages.USER_NAMES_TABLE;
+import static edu.csulb.android.bluetoothmessenger.ChatMessages.compressBitmap;
 import static edu.csulb.android.bluetoothmessenger.MainActivity.mBluetoothAdapter;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_AUDIO;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
 public class ChatActivity extends AppCompatActivity {
-
 
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int REQUEST_CONNECT_DEVICE = 3;
@@ -61,8 +68,6 @@ public class ChatActivity extends AppCompatActivity {
     private static final int SELECT_IMAGE = 11;
     private static final int MY_PERMISSION_REQUEST_READ_EXTERNAL_STORAGE = 2;
     private static final int MY_PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 100;
-    private String selectedImagePath;
-    private ImageView selectedImage;
 
     private static String mFileName = null;
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
@@ -75,15 +80,8 @@ public class ChatActivity extends AppCompatActivity {
     public static final String TOAST = "toast";
 
     public static final int MESSAGE_STATE_CHANGE = 1;
-    public static final int MESSAGE_READ = 2;
-    public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
-    public static final String DATATYPE_IMAGE = "image";
-    public static final String DATATYPE_TEXT = "text";
-    public static final String DATATYPE_FILE = "file";
-
-    private ArrayAdapter<String> mConversationArrayAdapter;
 
     private String mConnectedDeviceName = null;
     private String mConnectedDeviceAddress = null;
@@ -107,6 +105,9 @@ public class ChatActivity extends AppCompatActivity {
     private ArrayList<UserInfo> users;
 
     private final static String TAG = "ChatActivity";
+    private final static int MAX_IMAGE_SIZE = 200000;
+
+    private HashMap<String, String> macToUser = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,6 +115,7 @@ public class ChatActivity extends AppCompatActivity {
         setContentView(R.layout.chat_activity_main);
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        db = new ChatMessages(getApplicationContext());
 
         ArrayList<UserInfo> usersInfo = (ArrayList<UserInfo>) getIntent()
                 .getSerializableExtra("USERS-INFO");
@@ -124,17 +126,15 @@ public class ChatActivity extends AppCompatActivity {
             isGroupChat = true;
         }
 
-        Log.d(TAG, "Group chat is:" + isGroupChat);
         init();
 
         if (!mBluetoothAdapter.isEnabled()) {
-
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-
         } else if (mChatService == null || groupChatManager == null) {
             setupChat();
         }
+
         // Record to the external cache directory for visibility
         mFileName = getExternalCacheDir().getAbsolutePath();
         mFileName += "/audiorecordtest.3gp";
@@ -167,10 +167,7 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onClick(View view) {
-
-
                 onRecord(mStartRecording);
-
 
                 if (mStartRecording) {
                     btnRecord.setImageResource(R.drawable.ic_stop_black_24dp);
@@ -196,8 +193,6 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
-
-        db = new ChatMessages(getApplicationContext());
         loadChatHistory(getIntent());
         // Performing this check in onResume() covers the case in which BT was
         // not enabled during onStart(), so we were paused to enable it...
@@ -232,9 +227,27 @@ public class ChatActivity extends AppCompatActivity {
                 .getSerializableExtra("USERS-INFO");
 
         if (users == null) {
+            Log.d(TAG, "Users is null");
             return;
         } else if (isGroupChat) {
+            for (UserInfo user : users) {
+                macToUser.put(user.getMacAddress(), user.getName());
+            }
             Log.d(TAG, "Group chat");
+            if (db.isUserInDb(groupChatManager.getGroupId(), GROUP_CHAT_USER_TABLE)) {
+                Log.d(TAG, "Group is in database");
+                List<ChatMessage> readMessages = getAllGroupMessages(groupChatManager.getGroupId(),
+                        "Received");
+                List<ChatMessage> sentMessages = getAllGroupMessages(groupChatManager.getGroupId(),
+                        "Sent");
+
+                List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages,
+                        sentMessages);
+                showChatHistory(combinedMessages);
+
+            } else {
+                Log.d(TAG, "Group is not in database");
+            }
             return;
         }
 
@@ -242,63 +255,41 @@ public class ChatActivity extends AppCompatActivity {
 
         List<ChatMessage> readMessages = getAllMessages(users, "Received");
         List<ChatMessage> sentMessages = getAllMessages(users, "Sent");
-
         List<ChatMessage> combinedMessages = ChatMessages.combineMessages(readMessages, sentMessages);
 
-
-        List<ChatMessage> readImages = getAllImages(users,"Received_image") ;
-        List<ChatMessage> sentImages = getAllImages(users,"Sent_image") ;
-
-        List<ChatMessage> combinedImages = ChatMessages.combineImages(readImages, sentImages);
-
         showChatHistory(combinedMessages);
-        showImageHistory(combinedImages);
     }
-
 
     void showChatHistory(List<ChatMessage> messages) {
-
         String receivedFrom = null;
         for (ChatMessage message : messages) {
+            Log.d(TAG, message.user);
+            Log.d(TAG, Integer.toString(message.dataType));
             if (message.user.equals("Me")) {
-                chatMessageAdapter.add(new MessageInstance(true,
-                        message.user + ": " + message.message + "\n (" + message.timeStamp + ")"));
-            } else {
-                chatMessageAdapter.add(new MessageInstance(false,
-                        message.user + ": " + message.message + "\n (" + message.timeStamp + ")"));
 
-                /* Save the user name of the other device here provided that its not group chat */
-                if (receivedFrom == null && !isGroupChat) {
-                    receivedFrom = message.user;
+                if (message.dataType == DATA_IMAGE) {
+                    chatMessageAdapter.add(new MessageInstance(true, message.image));
+                } else if (message.dataType == DATA_TEXT) {
+                    chatMessageAdapter.add(new MessageInstance(true,
+                            message.user + ": " + message.message + "\n ("
+                                    + message.timeStamp + ")"));
+                } else {
+                    chatMessageAdapter.add(new MessageInstance(true, message.audioFile));
+                }
+            } else {
+                if (message.dataType == DATA_IMAGE) {
+                    chatMessageAdapter.add(new MessageInstance(false, message.image));
+                } else if (message.dataType == DATA_TEXT){
+                    chatMessageAdapter.add(new MessageInstance(false,
+                            message.user + ": " + message.message + "\n ("
+                                    + message.timeStamp + ")"));
+                } else {
+                    chatMessageAdapter.add(new MessageInstance(false, message.audioFile));
                 }
             }
-            chatMessageAdapter.notifyDataSetChanged();
-        }
-
-        setChatTitle(users.get(0).getName());
-    }
-
-    void showImageHistory(List<ChatMessage> messages) {
-
-        System.out.println("HIStorical Images");
-
-        String receivedFrom = null;
-        for (ChatMessage image : messages) {
-            if (image.user.equals("Me")) {
-                System.out.println("Inside Image If");
-
-                chatMessageAdapter.add(new MessageInstance(true,
-                         image.image ));
-            } else {
-                System.out.println("Inside Image Else");
-
-                chatMessageAdapter.add(new MessageInstance(false,
-                        image.image ));
-
-                /* Save the user name of the other device here provided that its not group chat */
-                if (receivedFrom == null && !isGroupChat) {
-                    receivedFrom = image.user;
-                }
+            /* Save the user name of the other device here provided that its not group chat */
+            if (receivedFrom == null && !isGroupChat) {
+                receivedFrom = message.user;
             }
             chatMessageAdapter.notifyDataSetChanged();
         }
@@ -341,29 +332,21 @@ public class ChatActivity extends AppCompatActivity {
         return messages;
     }
 
-    List<ChatMessage> getAllImages(List<UserInfo> usersInfo, String messageType) {
-        List<ChatMessage> messages = new ArrayList<>();
+    List<ChatMessage> getAllGroupMessages(String groupId, String messageType) {
+        List<ChatMessage> messages;
 
-        for (UserInfo info : usersInfo) {
-            String macAddress = info.macAddress;
-            String userName = info.name;
-            List<ChatMessage> readImages;
+        if (messageType.equals("Sent")) {
+            messages = db.retrieveSentGroupMessages(groupId);
+        } else {
+            messages = db.retrieveReceivedGroupMessages(groupId);
+        }
 
-            if (messageType.equals("Sent_image")) {
-                readImages = db.retrieveSentImages(macAddress);
-                System.out.println("IMAGE RETRIVE FROM DB"+readImages);
+        for (ChatMessage message : messages) {
+            Log.d(TAG, message.user + ":" + message.message);
+            if (messageType.equals("Sent")) {
+                message.user = "Me";
             } else {
-                readImages = db.retrieveReceivedImages(macAddress);
-                System.out.println("IMAGE RETRIVE FROM DB"+readImages);
-            }
-
-            for (ChatMessage image : readImages) {
-                if (messageType.equals("Sent_image")) {
-                    image.user = "Me";
-                } else {
-                    image.user = userName;
-                }
-                messages.add(image);
+                message.user = macToUser.get(message.user);
             }
         }
         return messages;
@@ -448,7 +431,6 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     public void CameraPhoto(View view) {
-
         Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
         startActivityForResult(cameraIntent, CAMERA_REQUEST);
     }
@@ -472,7 +454,6 @@ public class ChatActivity extends AppCompatActivity {
                         MY_PERMISSION_REQUEST_READ_EXTERNAL_STORAGE);
             }
         } else {
-            // Request image from the gallery app
             requestImageFromGallery();
         }
     }
@@ -506,13 +487,33 @@ public class ChatActivity extends AppCompatActivity {
                         try {
                             Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),
                                     data.getData());
-                            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
-                            String encodedImage = Base64.encodeToString(bos.toByteArray(),
-                                    Base64.DEFAULT);
-                            Log.d(TAG, "Base64 encoded string: " + encodedImage);
-//                        mChatService = new BluetoothChatService(mHandler);
-                            mChatService.write(encodedImage.getBytes(), DATATYPE_IMAGE);
+
+                            // If you can't compress the image, then do not try sending.
+                            byte[] imageSend;
+                            try {
+                                imageSend = compressBitmap(bitmap, true);
+                            } catch (NullPointerException e) {
+                                Log.d(TAG, "Image cannot be compressed");
+                                Toast.makeText(getApplicationContext(), "Image can not be found" +
+                                                " or is too large to be sent",
+                                        Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
+                            Calendar calendar = Calendar.getInstance();
+                            String timeSent = sdf.format(calendar.getTime());
+
+                            if (imageSend.length > MAX_IMAGE_SIZE) {
+                                Toast.makeText(getApplicationContext(), "Image is too large",
+                                        Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
+                            if (isGroupChat) {
+                                groupChatManager.sendMessage(imageSend, DATA_IMAGE);
+                            } else {
+                                mChatService.write(imageSend, DATA_IMAGE, timeSent);
+                            }
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -524,12 +525,31 @@ public class ChatActivity extends AppCompatActivity {
                 if (resultCode == Activity.RESULT_OK) {
                     if (data != null) {
                         Bitmap bitmap = (Bitmap) data.getExtras().get("data");
-                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
-                        String encodedImage = Base64.encodeToString(bos.toByteArray(),
-                                Base64.DEFAULT);
-                        Log.d(TAG, "Base64 encoded string: " + encodedImage);
-                        mChatService.write(encodedImage.getBytes(), DATATYPE_IMAGE);
+
+                        byte[] cameraSend;
+                        try {
+                            cameraSend = compressBitmap(bitmap, true);
+                        } catch (Exception e) {
+                            Log.d(TAG, "Could not find the image");
+                            Toast.makeText(getApplicationContext(), "Image could not be sent",
+                                    Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        if (cameraSend.length > MAX_IMAGE_SIZE) {
+                            Toast.makeText(getApplicationContext(), "Image is too large to be sent",
+                                    Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        Calendar calendar = Calendar.getInstance();
+                        String timeSent = sdf.format(calendar.getTime());
+
+                        if (isGroupChat) {
+                            groupChatManager.sendMessage(cameraSend, DATA_IMAGE);
+                        } else {
+                            mChatService.write(cameraSend, DATA_IMAGE, timeSent);
+                        }
                     }
                 }
                 break;
@@ -548,18 +568,16 @@ public class ChatActivity extends AppCompatActivity {
     private void connectDevice(String macAddress) {
         BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(macAddress);
         mConnectedDeviceAddress = macAddress;
-        // Attempt to connect to the device
         mChatService.connect(device);
     }
 
-    private static final SimpleDateFormat sdf = new SimpleDateFormat("y-MM-dd HH:mm:ss");
+    static final SimpleDateFormat sdf = new SimpleDateFormat("y-MM-dd HH:mm:ss");
 
     String prevSendTime = null;
 
     Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            //FragmentActivity activity = getActivity();
             switch (msg.what) {
                 case MESSAGE_STATE_CHANGE:
                     switch (msg.arg1) {
@@ -571,136 +589,215 @@ public class ChatActivity extends AppCompatActivity {
                         case BluetoothChatService.STATE_LISTEN:
                         case BluetoothChatService.STATE_NONE:
                             connectionStatus.setText(getResources().getString(R.string.disconnected));
-                            //setStatus(R.string.title_not_connected);
                             break;
                     }
                     break;
-                case MESSAGE_WRITE:
 
-                    if (msg.arg2 == 1) {
 
-                        byte[] writeBuf = (byte[]) msg.obj;
-                        // construct a string from the buffer
-                        String writeMessage = new String(writeBuf);
-                        Calendar calendar = Calendar.getInstance();
-                        String time = sdf.format(calendar.getTime());
+                case MESSAGE_WRITE_TEXT:
+                    MessageInstance textWriteInstance = (MessageInstance) msg.obj;
+                    byte[] writeBuf = (byte[]) textWriteInstance.getData();
+                    // construct a string from the buffer
+                    String writeMessage = new String(writeBuf);
+                    Calendar calendar = Calendar.getInstance();
+                    String txtWriteTime = sdf.format(calendar.getTime());
 
-                        // If there is a group chat, you will not send multiple times
-                        // sometimes back to back messages have the same time
-                        // maybe use milliseconds to break ties
-                        if (prevSendTime == null) {
-                            prevSendTime = time;
-                        } else if (prevSendTime.equals(time)) {
-                            Log.d(TAG, "Time equal, msg not repeated");
-                            break;
-                        }
+                    // This is stored in milliseconds for time checking
+                    String time = textWriteInstance.getTime();
+
+                    // If there is a group chat, you will not send multiple times
+                    // sometimes back to back messages have the same time
+                    // maybe use milliseconds to break ties
+                    if (prevSendTime == null) {
                         prevSendTime = time;
+                    } else if (prevSendTime.equals(time)) {
+                        Log.d(TAG, "Time equal, msg not repeated");
+                        break;
+                    }
+                    prevSendTime = time;
 
-                        chatMessageAdapter.add(new MessageInstance(true, writeMessage));
+                    if (isGroupChat) {
+                        db.insertSentGroupMessage(txtWriteTime, groupChatManager.getGroupId(),
+                                writeMessage, DATA_TEXT, groupChatManager.getGroupId());
+                    } else {
+                        db.insertSentMessage(txtWriteTime, mConnectedDeviceAddress, writeMessage,
+                                DATA_TEXT);
+                    }
+
+                    String writeDisplayMessage = "Me: " + writeMessage + "\n"
+                            + "(" + txtWriteTime + ")";
+
+                    chatMessageAdapter.add(new MessageInstance(true, writeDisplayMessage));
+                    chatMessageAdapter.notifyDataSetChanged();
+                    break;
+
+                case MESSAGE_WRITE_AUDIO:
+                    MessageInstance audioWriteInstance = (MessageInstance) msg.obj;
+                    String connectedMacAddress = audioWriteInstance.getMacAddress();
+                    // Used for DB storage
+                    Calendar AudioCalendar = Calendar.getInstance();
+                    String AudioWriteTime = sdf.format(AudioCalendar.getTime());
+
+                    time = audioWriteInstance.getTime();
+
+                    if (prevSendTime == null) {
+                        prevSendTime = time;
+                    } else if (prevSendTime.equals(time)) {
+                        Log.d(TAG, "Time equal, msg not repeated");
+                        break;
+                    }
+                    prevSendTime = time;
+
+                    Log.d(TAG, "Audio should be stored at: " + fileName);
+                    File f = new File(fileName);
+                    chatMessageAdapter.add(new MessageInstance(true, f));
+                    chatMessageAdapter.notifyDataSetChanged();
+
+                    if (isGroupChat) {
+                        db.insertSentGroupMessage(AudioWriteTime, groupChatManager.getGroupId(), f.toString(),
+                                DATA_AUDIO, groupChatManager.getGroupId());
+                    } else {
+                        db.insertSentMessage(AudioWriteTime, connectedMacAddress, f.toString(), DATA_AUDIO);
+                    }
+
+                    break;
+
+                case MESSAGE_WRITE_IMAGE:
+                    Log.d(TAG, "Writing image");
+                    MessageInstance imageWriteInstance = (MessageInstance) msg.obj;
+                    String userMacAddress = imageWriteInstance.getMacAddress();
+
+                    Calendar ImageCalendar = Calendar.getInstance();
+                    String imageWriteTime = sdf.format(ImageCalendar.getTime());
+
+                    time = imageWriteInstance.getTime();
+
+                    if (prevSendTime == null) {
+                        prevSendTime = time;
+                    } else if (prevSendTime.equals(time)) {
+                        Log.d(TAG, "Time equal, msg not repeated");
+                        break;
+                    }
+                    prevSendTime = time;
+
+                    imageBitmap = (Bitmap) imageWriteInstance.getData();
+                    byte[] writeDecodedStringArray = compressBitmap(imageBitmap, false);
+
+                    if (isGroupChat) {
+                        db.insertSentGroupMessage(imageWriteTime, groupChatManager.getGroupId(),
+                                writeDecodedStringArray, DATA_IMAGE, groupChatManager.getGroupId());
+                    } else {
+                        db.insertSentMessage(imageWriteTime, userMacAddress,
+                                writeDecodedStringArray, DATA_IMAGE);
+                        Log.d(TAG, "Inserted write image into DB");
+                    }
+
+                    if (imageBitmap != null) {
+                        chatMessageAdapter.add(new MessageInstance(true, imageBitmap));
                         chatMessageAdapter.notifyDataSetChanged();
-                        // Write messages to database
-                        // Add mAddress and mConnectedDeviceName to db for future recovery
-                        db.insertSentMessage(time, mConnectedDeviceAddress, writeMessage,null);
-                    } else if (msg.arg2 == 2) {
+                    } else {
+                        Log.e(TAG, "Fatal: Image bitmap is null");
+                    }
+                    break;
 
-                        imageBitmap = (Bitmap) msg.obj;
+                case MESSAGE_READ_IMAGE:
+                    MessageInstance msgImgData = (MessageInstance) msg.obj;
+                    userMacAddress = msgImgData.getMacAddress();
+                    Calendar calTest = Calendar.getInstance();
+                    String readImageTime = sdf.format(calTest.getTime());
 
+                    if (msgImgData.getDataType() == DATA_IMAGE) {
+                        imageBitmap = (Bitmap) msgImgData.getData();
 
-                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                        imageBitmap.compress(Bitmap.CompressFormat.JPEG,50,bos);
-                        String encodedImage = Base64.encodeToString(bos.toByteArray(),
-                                Base64.DEFAULT);
-                        byte[] decodedStringArray = Base64.decode(encodedImage, Base64.DEFAULT);
+                        // Compress and store in database
+                        byte[] decodedStringArray = compressBitmap(imageBitmap, false);
 
-                        Calendar calendar = Calendar.getInstance();
-                        String time = sdf.format(calendar.getTime());
-
-                        // If there is a group chat, you will not send multiple times
-                        // sometimes back to back messages have the same time
-                        // maybe use milliseconds to break ties
-                        if (prevSendTime == null) {
-                            prevSendTime = time;
-                        } else if (prevSendTime.equals(time)) {
-                            Log.d(TAG, "Time equal, msg not repeated");
-                            break;
-                        }
-                        prevSendTime = time;
-
-                        if (imageBitmap != null) {
-                            chatMessageAdapter.add(new MessageInstance(true, imageBitmap));
-                            chatMessageAdapter.notifyDataSetChanged();
-
-                            db.insertSentImage(time,mConnectedDeviceAddress, decodedStringArray);
-
+                        if (isGroupChat) {
+                            db.insertReceivedGroupMessage(readImageTime, userMacAddress,
+                                    decodedStringArray, DATA_IMAGE, groupChatManager.getGroupId());
                         } else {
-                            Log.e(TAG, "Fatal: Image bitmap is null");
+                            db.insertReceivedMessage(readImageTime, userMacAddress, decodedStringArray,
+                                    DATA_IMAGE);
                         }
-                    } else if (msg.arg2 == 3) {
-                        File f = new File(fileName);
-                        chatMessageAdapter.add(new MessageInstance(true, f));
-                        chatMessageAdapter.notifyDataSetChanged();
-
-                        Calendar calendar = Calendar.getInstance();
-                        String time = sdf.format(calendar.getTime());
-
-//                        db.insertSentAudio(time,mConnectedDeviceAddress, f);
-                    }
-                    break;
-
-                case MESSAGE_READ:
-                    if (msg.arg2 == 1) {
-                        byte[] readBuf = (byte[]) msg.obj;
-                        // construct a string from the valid bytes in the buffer
-                        Calendar cal = Calendar.getInstance();
-                        String readTime = sdf.format(cal.getTime());
-
-                        chatMessageAdapter.add(new MessageInstance(false, new String(readBuf)));
-                        chatMessageAdapter.notifyDataSetChanged();
-
-                        // Write messages to db
-                        db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
-                                new String(readBuf),null);
-                    } else if (msg.arg2 == 2) {
-                        imageBitmap = (Bitmap) msg.obj;
-
-                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                        imageBitmap.compress(Bitmap.CompressFormat.JPEG,50,bos);
-                        String encodedImage = Base64.encodeToString(bos.toByteArray(),
-                                Base64.DEFAULT);
-                        byte[] decodedStringArray = Base64.decode(encodedImage, Base64.DEFAULT);
-
-
-                        Calendar cal = Calendar.getInstance();
-                        String readTime = sdf.format(cal.getTime());
+                        Log.d(TAG, "Image stored in db");
 
                         if (imageBitmap != null) {
                             chatMessageAdapter.add(new MessageInstance(false, imageBitmap));
                             chatMessageAdapter.notifyDataSetChanged();
-                            db.insertReceivedImage(readTime,mConnectedDeviceAddress, decodedStringArray);
                         } else {
                             Log.e(TAG, "Fatal: Image bitmap is null");
                         }
-                    } else if (msg.arg2 == 3) {
-                        String filename = getFilename();
-                        FileOutputStream fos;
-                        try {
-                            if (filename != null) {
-                                byte[] buff = (byte[]) msg.obj;
-                                fos = new FileOutputStream(filename);
-                                fos.write(buff);
-                                fos.flush();
-                                fos.close();
-                                chatMessageAdapter.add(new MessageInstance(false, new File(filename)));
-                                chatMessageAdapter.notifyDataSetChanged();
-                            }
-                        } catch (Exception e) {
-                            Toast.makeText(ChatActivity.this, "Could not save the file",
-                                    Toast.LENGTH_SHORT).show();
-                            Log.e(TAG, "Could not save the file", e);
-                        }
                     }
+
+                    Log.d(TAG, "Image was read from " + msgImgData.getUserName() + ": "
+                        + msgImgData.getMacAddress());
+
                     break;
 
+                case MESSAGE_READ_TEXT:
+                    MessageInstance msgTextData = (MessageInstance) msg.obj;
+                    byte[] readBuf = (byte[]) msgTextData.getData();
+
+                    Calendar cal = Calendar.getInstance();
+                    String readTime = sdf.format(cal.getTime());
+
+                    String message = new String(readBuf);
+                    connectedMacAddress = msgTextData.getMacAddress();
+                    // modify this for group chat
+                    if (isGroupChat) {
+                        db.insertReceivedGroupMessage(readTime, connectedMacAddress, message,
+                                DATA_TEXT, groupChatManager.getGroupId());
+                    } else {
+                        db.insertReceivedMessage(readTime, mConnectedDeviceAddress,
+                                message, DATA_TEXT);
+                    }
+
+                    String displayMessage = msgTextData.getUserName() + ": " + message + "\n"
+                            + "(" + readTime + ")";
+
+                    chatMessageAdapter.add(new MessageInstance(false, displayMessage));
+                    chatMessageAdapter.notifyDataSetChanged();
+
+                    Log.d(TAG, "Text was read from " + msgTextData.getUserName() + ": "
+                            + msgTextData.getMacAddress());
+                    break;
+
+                case MESSAGE_READ_AUDIO:
+                    MessageInstance msgAudioData = (MessageInstance) msg.obj;
+                    connectedMacAddress = msgAudioData.getMacAddress();
+                    Calendar readAudioCal = Calendar.getInstance();
+                    readTime = sdf.format(readAudioCal.getTime());
+                    String filename = getFilename();
+                    FileOutputStream fos;
+
+                    try {
+                        if (filename != null) {
+                            byte[] buff = (byte[]) msgAudioData.getData();
+                            Log.d(TAG, "TIME: " + readTime);
+                            fos = new FileOutputStream(filename);
+                            fos.write(buff);
+                            fos.flush();
+                            fos.close();
+                            chatMessageAdapter.add(new MessageInstance(false, new File(filename)));
+                            chatMessageAdapter.notifyDataSetChanged();
+
+                            if (isGroupChat) {
+                                db.insertReceivedGroupMessage(readTime, connectedMacAddress, filename,
+                                        DATA_AUDIO, groupChatManager.getGroupId());
+                            } else {
+                                db.insertReceivedMessage(readTime, connectedMacAddress, filename,
+                                        DATA_AUDIO);
+                            }
+                        }
+                    } catch (Exception e) {
+                        Toast.makeText(ChatActivity.this, "Could not save the file",
+                                Toast.LENGTH_SHORT).show();
+                        Log.e(TAG, "Could not save the file", e);
+                    }
+
+                    Log.d(TAG, "Audio was saved from " + msgAudioData.getUserName() + ": "
+                        + msgAudioData.getMacAddress());
+                    break;
 
                 case MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -720,12 +817,16 @@ public class ChatActivity extends AppCompatActivity {
 
                     if (isGroupChat) {
                         groupChatManager.setConnectionAsTrue(deviceAddress);
-                        Log.d(TAG, "Group chat is on" + isGroupChat);
-                        Log.d(TAG, "Users size:" + users.size());
+
+                        if (groupChatManager.isConnectedToAll()) {
+                            Log.d(TAG, "Connected to all in group");
+                            db.insertGroupName(groupChatManager.getGroupId(),
+                                    groupChatManager.getGroupUserNames());
+                        }
                         break;
                     }
 
-                    if (db.isUserInDb(mConnectedDeviceAddress)) {
+                    if (db.isUserInDb(mConnectedDeviceAddress, USER_NAMES_TABLE)) {
                         Log.d(TAG, "User in db");
                         Intent intent = new Intent();
                         ArrayList<UserInfo> users = new ArrayList<>();
@@ -764,26 +865,6 @@ public class ChatActivity extends AppCompatActivity {
         }
     };
 
-    public String getPath(Uri uri) {
-        if (uri == null) {
-            Toast.makeText(getApplicationContext(), "Uri is null", Toast.LENGTH_SHORT).show();
-            return null;
-        }
-
-        String[] projection = {MediaStore.Images.Media.DATA};
-        Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
-        if (cursor != null) {
-            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            String path = cursor.getString(column_index);
-            cursor.close();
-            return path;
-        }
-        // this is our fallback here
-        return uri.getPath();
-    }
-
-
     private void setupChat() {
         // Initialize the compose field with a listener for the return key
         mEditText.setOnEditorActionListener(mWriteListener);
@@ -806,6 +887,7 @@ public class ChatActivity extends AppCompatActivity {
         if (isGroupChat) {
             Log.d(TAG, "setting up group chat");
             groupChatManager = new GroupChat(users, mHandler);
+            db.insertGroupName(groupChatManager.getGroupId(), groupChatManager.getGroupUserNames());
         } else {
             Log.d(TAG, "setting up single chat");
             mChatService = new BluetoothChatService(mHandler);
@@ -824,12 +906,11 @@ public class ChatActivity extends AppCompatActivity {
 
         // Check that there's actually something to send
         if (message.length() > 0) {
-
             System.out.println("Message Length = " + message.length());
-            // Get the message bytes and tell the BluetoothChatService to write
-            byte[] send = message.getBytes();
-//            mChatService.write(send);
-            mChatService.write(message.getBytes(), DATATYPE_TEXT);
+
+            Calendar calendar = Calendar.getInstance();
+            String timeSent = sdf.format(calendar.getTime());
+            mChatService.write(message.getBytes(), DATA_TEXT, timeSent);
 
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
@@ -845,7 +926,8 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         if (message.length() > 0) {
-            groupChatManager.sendTextMessage(message.getBytes());
+            groupChatManager.sendMessage(message.getBytes(), DATA_TEXT);
+
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
             mEditText.setText(mOutStringBuffer);
@@ -946,7 +1028,6 @@ public class ChatActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, "Recording failed", e);
         }
-
     }
 
     /*
@@ -959,53 +1040,24 @@ public class ChatActivity extends AppCompatActivity {
             mRecorder.reset();
             mRecorder.release();
             mRecorder = null;
-            if (mChatService != null) {
+            if (mChatService != null || groupChatManager != null) {
                 try {
                     File f = new File(fileName);
                     FileInputStream fis = new FileInputStream(fileName);
                     byte[] buff = new byte[(int) f.length()];
                     fis.read(buff);
-                    mChatService.write(buff, DATATYPE_FILE);
+                    Calendar calendar = Calendar.getInstance();
+                    String timeSent = sdf.format(calendar.getTime());
+                    if (isGroupChat) {
+                        groupChatManager.sendMessage(buff, DATA_AUDIO);
+                    } else {
+                        mChatService.write(buff, DATA_AUDIO, timeSent);
+                    }
                     fis.close();
                 } catch (Exception e) {
                     Log.e(TAG, "Could not open stream to save data", e);
                 }
             }
         }
-
     }
-
-    /*
-    * Handle record play
-    * */
-    private void onPlay(boolean start) {
-        if (start) {
-            startPlaying();
-        } else {
-            stopPlaying();
-        }
-    }
-
-    /*
-    * Create new MediaPlayer object. Set its resource to file and start playback
-    * */
-    private void startPlaying() {
-        mPlayer = new MediaPlayer();
-        try {
-            mPlayer.setDataSource(mFileName);
-            mPlayer.prepare();
-            mPlayer.start();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, "prepare() failed");
-        }
-    }
-
-    /*
-    * Release he player and reset it to null
-    * */
-    private void stopPlaying() {
-        mPlayer.release();
-        mPlayer = null;
-    }
-
 }

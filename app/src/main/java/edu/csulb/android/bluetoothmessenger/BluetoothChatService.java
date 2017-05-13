@@ -4,7 +4,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -22,11 +21,13 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.UUID;
 
-/**
- * Created by Hemant on 5/5/2017.
- */
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_AUDIO;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
 
+// Taken from Google's blue tooth chat program
+// We have modified it to fit our uses.
 
 public class BluetoothChatService {
 
@@ -55,16 +56,16 @@ public class BluetoothChatService {
     public static final String TOAST = "toast";
 
     public static final int MESSAGE_STATE_CHANGE = 1;
-    public static final int MESSAGE_READ = 2;
-    public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
 
-    public static final String DATATYPE_IMAGE = "image";
-    public static final String DATATYPE_TEXT = "text";
-    public static final String DATATYPE_FILE = "file";
+    public static final int MESSAGE_READ_IMAGE = 6;
+    public static final int MESSAGE_READ_AUDIO = 7;
+    public static final int MESSAGE_READ_TEXT = 8;
 
-
+    public static final int MESSAGE_WRITE_IMAGE = 9;
+    public static final int MESSAGE_WRITE_AUDIO = 10;
+    public static final int MESSAGE_WRITE_TEXT = 11;
 
     private int mState;
     private int mNewState;
@@ -229,18 +230,27 @@ public class BluetoothChatService {
          */
 
         public void run() {
-            byte[] bufferData = new byte[16384];
+            final int BUFFER_SIZE = 16384;
+            byte[] bufferData = new byte[BUFFER_SIZE];
             int numOfPackets = 0;
             int datatype = 0;
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
             while (mState == STATE_CONNECTED) {
                 try {
-                    Log.d(TAG, "Device address + name:" + mSocket.getRemoteDevice().getAddress()
-                    + " " + mSocket.getRemoteDevice().getName());
                     int numOfBytes = mInStream.read(bufferData);
                     byte[] trimmedBufferData = Arrays.copyOf(bufferData, numOfBytes);
-                    bufferData = new byte[16384];
+                    bufferData = new byte[BUFFER_SIZE];
                     ByteBuffer tempBuffer = ByteBuffer.wrap(trimmedBufferData);
+
+                    String macAddress = mSocket.getRemoteDevice().getAddress();
+                    String userName = mSocket.getRemoteDevice().getName();
+
+                    MessageInstance dataSent = new MessageInstance();
+                    dataSent.setMacAddress(macAddress);
+                    dataSent.setUserName(userName);
+
+
                     if (datatype == 0) {
                         datatype = tempBuffer.getInt();
                         Log.d(TAG, "Datatype: " + datatype);
@@ -255,17 +265,38 @@ public class BluetoothChatService {
                     //Following condition checks if we have received all necessary bytes to construct a message out of it.
                     if (bos.size() == numOfPackets) {
                         //For Text and Audio notes
-                        if (datatype != 2) {
-                            Log.d(TAG, "Data: " + new String(bos.toByteArray(), Charset.defaultCharset()));
-                            Message msg = mHandler.obtainMessage(MESSAGE_READ, -1, datatype, bos.toByteArray());
-                            msg.sendToTarget();
-                        } else {    //For images - Special check because we have to decode the image from Base64.
-                            String decodedString = new String(bos.toByteArray(), Charset.defaultCharset());
-                            Log.d(TAG, "Image Base64 decoded string: " + decodedString);
-                            byte[] decodedStringArray = Base64.decode(decodedString, Base64.DEFAULT);
-                            Bitmap bp = BitmapFactory.decodeByteArray(decodedStringArray, 0, decodedStringArray.length);
-                            Message msg = mHandler.obtainMessage(MESSAGE_READ, -1, datatype, bp);
-                            msg.sendToTarget();
+                        switch(datatype) {
+                            case DATA_AUDIO:
+                                Log.d(TAG, "Reading audio from socket");
+                                dataSent.setData(bos.toByteArray());
+                                dataSent.setDataType(DATA_AUDIO);
+                                Message audioMsg = mHandler.obtainMessage(MESSAGE_READ_AUDIO, -1,
+                                        datatype, dataSent);
+                                audioMsg.sendToTarget();
+                                break;
+                            case DATA_TEXT:
+                                Log.d(TAG, "Reading text from socket");
+                                dataSent.setData(bos.toByteArray());
+                                dataSent.setDataType(DATA_TEXT);
+                                Message textMsg = mHandler.obtainMessage(MESSAGE_READ_TEXT, -1,
+                                        datatype, dataSent);
+                                textMsg.sendToTarget();
+                                break;
+                            case DATA_IMAGE:
+                                Log.d(TAG, "Reading image from socket");
+                                String decodedString = new String(bos.toByteArray(),
+                                        Charset.defaultCharset());
+                                byte[] decodedStringArray = Base64.decode(decodedString, Base64.DEFAULT);
+                                Bitmap bp = BitmapFactory.decodeByteArray(decodedStringArray,
+                                        0, decodedStringArray.length);
+
+                                dataSent.setDataType(DATA_IMAGE);
+                                dataSent.setData(bp);
+
+                                Message imgMsg = mHandler.obtainMessage(MESSAGE_READ_IMAGE,
+                                        -1, datatype, dataSent);
+                                imgMsg.sendToTarget();
+                                break;
                         }
                         //Re-initialize for the next message.
                         datatype = 0;
@@ -280,33 +311,57 @@ public class BluetoothChatService {
             }
         }
 
-        public void write(byte[] bytes, String datatype) {
+        public void write(byte[] bytes, int datatype, String timeSent) {
             try {
                 Message writtenMsg = null;
                 ByteArrayOutputStream tempOutputStream = new ByteArrayOutputStream();
                 ByteBuffer tempBuffer = ByteBuffer.allocate(bytes.length + 8);
-                if (datatype.equals(DATATYPE_IMAGE)) {
+                MessageInstance dataSent = new MessageInstance();
+                String macAddress = mSocket.getRemoteDevice().getAddress();
+                String userName = mSocket.getRemoteDevice().getName();
+                dataSent.setMacAddress(macAddress);
+                dataSent.setUserName(userName);
+                dataSent.setTime(timeSent);
+                if (datatype == DATA_IMAGE) {
 
                     System.out.println("IMAGE WRITE");
 
-                    tempBuffer.putInt(2);
+                    tempBuffer.putInt(DATA_IMAGE);
                     ByteArrayOutputStream imageStream = new ByteArrayOutputStream();
                     imageStream.write(bytes);
-                    String decodedString = new String(imageStream.toByteArray(), Charset.defaultCharset());
+                    String decodedString = new String(imageStream.toByteArray(),
+                            Charset.defaultCharset());
                     byte[] decodedStringArray = Base64.decode(decodedString, Base64.DEFAULT);
-                    Bitmap bp = BitmapFactory.decodeByteArray(decodedStringArray, 0, decodedStringArray.length);
-                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, 2, bp);
+                    Bitmap bp = BitmapFactory.decodeByteArray(decodedStringArray,
+                            0, decodedStringArray.length);
+
+                    dataSent.setData(bp);
+                    dataSent.setDataType(DATA_IMAGE);
+
+                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_IMAGE, -1, DATA_IMAGE,
+                            dataSent);
                     imageStream.close();
-                } else if (datatype.equals(DATATYPE_TEXT)) {
-                    tempBuffer.putInt(1);
-                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, 1, bytes);
-                } else if (datatype.equals(DATATYPE_FILE)) {
-                    tempBuffer.putInt(3);
-                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE, -1, 3, bytes);
+
+                } else if (datatype == DATA_TEXT) {
+
+                    tempBuffer.putInt(DATA_TEXT);
+                    dataSent.setData(bytes);
+                    dataSent.setDataType(DATA_TEXT);
+
+                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_TEXT, -1, DATA_TEXT,
+                            dataSent);
+
+                } else if (datatype == DATA_AUDIO) {
+                    tempBuffer.putInt(DATA_AUDIO);
+                    dataSent.setData(bytes);
+                    dataSent.setDataType(DATA_AUDIO);
+
+                    writtenMsg = mHandler.obtainMessage(MESSAGE_WRITE_AUDIO, -1, DATA_AUDIO,
+                            dataSent);
                 }
-                Log.d(TAG, "Sending size: " + bytes.length);
+                //Log.d(TAG, "Sending size: " + bytes.length);
                 tempBuffer.putInt(bytes.length);
-                Log.d(TAG, "Sending data: " + new String(bytes, Charset.defaultCharset()));
+                //Log.d(TAG, "Sending data: " + new String(bytes, Charset.defaultCharset()));
                 tempBuffer.put(bytes);
                 tempOutputStream.write(tempBuffer.array());
                 mOutStream.write(tempOutputStream.toByteArray());
@@ -319,7 +374,8 @@ public class BluetoothChatService {
 
                 Message writeErrorMsg = mHandler.obtainMessage(MESSAGE_TOAST);
                 Bundle bundle = new Bundle();
-                bundle.putString("toast", "Device disconnected. Couldn't send data to the other device");
+                bundle.putString("toast", "Device disconnected. " +
+                        "Couldn't send data to the other device");
                 writeErrorMsg.setData(bundle);
                 mHandler.sendMessage(writeErrorMsg);
             }
@@ -365,7 +421,6 @@ public class BluetoothChatService {
         // Start the service over to restart listening mode
         BluetoothChatService.this.start();
     }
-
 
     /**
      * Start the ConnectThread to initiate a connection to a remote device.
@@ -489,7 +544,7 @@ public class BluetoothChatService {
 //     * @param out The bytes to write
 //     * @see ConnectedThread#write(byte[])
 //     */
-    public void write(byte[] out, String datatype) {
+    public void write(byte[] out, int datatype, String timeSent) {
         // Create temporary object
         ConnectedThread r;
         // Synchronize a copy of the ConnectedThread
@@ -498,7 +553,7 @@ public class BluetoothChatService {
             r = mConnectedThread;
         }
         // Perform the write unsynchronized
-        r.write(out, datatype);
+        r.write(out, datatype, timeSent);
     }
 
     private synchronized void updateUserInterfaceTitle() {

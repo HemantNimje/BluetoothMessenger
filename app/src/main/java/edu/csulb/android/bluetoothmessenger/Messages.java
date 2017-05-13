@@ -8,13 +8,19 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Base64;
 import android.util.Log;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_AUDIO;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_IMAGE;
+import static edu.csulb.android.bluetoothmessenger.MessageInstance.DATA_TEXT;
 
 // Every device has two databases.  One that records your sent messages.
 // And another that records the messages sent to you.
@@ -32,23 +38,30 @@ import java.util.List;
 // has sent you.
 // where each Message contains a time and message.
 
-
 class ChatMessage {
     String timeStamp;
     String message;
     String user;
     Bitmap image;
-    byte[] file;
-
+    File audioFile;
+    int dataType;
 
     ChatMessage(String time, String message) {
         timeStamp = time;
         this.message = message;
+        dataType = DATA_TEXT;
     }
 
     ChatMessage(String time, Bitmap image) {
         timeStamp = time;
         this.image = image;
+        dataType = DATA_IMAGE;
+    }
+
+    ChatMessage(String time, File audioFile) {
+        timeStamp = time;
+        this.audioFile = audioFile;
+        dataType = DATA_AUDIO;
     }
 }
 
@@ -57,21 +70,19 @@ class ChatMessages extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 1;
     private static final String RECEIVED_MESSAGES_TABLE = "ReceivedMessages";
     private static final String SENT_MESSAGES_TABLE = "SentMessages";
-    private static final String RECEIVED_IMAGES_TABLE = "ReceivedImages";
-    private static final String SENT_IMAGES_TABLE = "SentImages";
-    private static final String USER_NAMES_TABLE = "UserNames";
+    static final String USER_NAMES_TABLE = "UserNames";
+    static final String GROUP_CHAT_USER_TABLE = "GroupChatUserNames";
 
     //Columns
     private static final String TIME_STAMP = "Time";
     private static final String USER_ID = "User";
     private static final String MESSAGE = "Message";
     private static final String USER_NAME = "UserName";
-    private static final String KEY_IMAGE = "image_data";
-    private static final String AUDIO = "Audio_data";
-
+    private static final String GROUP_ID = "GroupId";
+    private static final String IMAGE = "Image";
+    private static final String AUDIO = "Audio";
 
     private static final String TAG = "Messages";
-
 
     ChatMessages(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -79,9 +90,15 @@ class ChatMessages extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        final String MESSAGES_COLUMNS = " (" + TIME_STAMP + " TEXT,"
-                + USER_ID + " TEXT," + MESSAGE + " TEXT,"
-                + "PRIMARY KEY (" + TIME_STAMP + ", "
+        final String MESSAGES_COLUMNS = " ("
+                + TIME_STAMP + " TEXT,"
+                + USER_ID + " TEXT,"
+                + MESSAGE + " TEXT,"
+                + IMAGE + " BLOB,"
+                + AUDIO + " TEXT,"
+                + GROUP_ID + " TEXT,"
+                + "PRIMARY KEY ("
+                + TIME_STAMP + ", "
                 + USER_ID + ") )";
 
         final String CREATE_RECEIVED_MESSAGES_TABLE = "CREATE TABLE "
@@ -96,66 +113,54 @@ class ChatMessages extends SQLiteOpenHelper {
         final String CREATE_USER_NAMES_TABLE = "CREATE TABLE " +
                 USER_NAMES_TABLE + USERS_COLUMNS;
 
-        final String IMAGE_COLUMNS = " (" + TIME_STAMP + " TEXT,"
-                + USER_ID + " TEXT," + KEY_IMAGE + " BLOB,"
-                + "PRIMARY KEY (" + TIME_STAMP + ", "
-                + USER_ID + ") )";
+        final String CREATE_GROUP_CHAT_USER_TABLE = "CREATE TABLE " +
+                GROUP_CHAT_USER_TABLE + USERS_COLUMNS;
 
-        final String CREATE_RECEIVED_IMAGES_TABLE = "CREATE TABLE "
-                + RECEIVED_IMAGES_TABLE + IMAGE_COLUMNS;
-
-        final String CREATE_SENT_IMAGES_TABLE = "CREATE TABLE "
-                + SENT_IMAGES_TABLE + IMAGE_COLUMNS;
-
-
-        Log.i(TAG, CREATE_RECEIVED_MESSAGES_TABLE);
-        Log.i(TAG, CREATE_SENT_MESSAGES_TABLE);
+        Log.d(TAG, CREATE_RECEIVED_MESSAGES_TABLE);
+        Log.d(TAG, CREATE_SENT_MESSAGES_TABLE);
         Log.d(TAG, CREATE_USER_NAMES_TABLE);
-        Log.i(TAG, CREATE_RECEIVED_IMAGES_TABLE);
-        Log.i(TAG, CREATE_SENT_IMAGES_TABLE);
-
+        Log.d(TAG, CREATE_GROUP_CHAT_USER_TABLE);
 
         db.execSQL(CREATE_RECEIVED_MESSAGES_TABLE);
         db.execSQL(CREATE_SENT_MESSAGES_TABLE);
         db.execSQL(CREATE_USER_NAMES_TABLE);
-        db.execSQL(CREATE_RECEIVED_IMAGES_TABLE);
-        db.execSQL(CREATE_SENT_IMAGES_TABLE);
+        db.execSQL(CREATE_GROUP_CHAT_USER_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS " + RECEIVED_MESSAGES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + SENT_MESSAGES_TABLE);
-        db.execSQL("DROP TABLE IF EXISTS " + RECEIVED_IMAGES_TABLE);
-        db.execSQL("DROP TABLE IF EXISTS " + SENT_IMAGES_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + USER_NAMES_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + GROUP_CHAT_USER_TABLE);
         onCreate(db);
     }
 
-    private void insertMessage(String timeStamp, String userId, String message, byte[] file, String tableType) {
+    private void insertMessage(String timeStamp, String userId, Object message, String tableType,
+                               int dataType, String groupId) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues insertValues = new ContentValues();
         insertValues.put(TIME_STAMP, timeStamp);
         insertValues.put(USER_ID, userId);
-        insertValues.put(MESSAGE, message);
-        insertValues.put(AUDIO, file);
+
+        if (dataType == DATA_TEXT) {
+            insertValues.put(MESSAGE, (String) message);
+        }
+        else if (dataType == DATA_IMAGE) {
+            insertValues.put(IMAGE, (byte []) message);
+        }
+        else if (dataType == DATA_AUDIO) {
+            insertValues.put(AUDIO, message.toString());
+        }
+
+        if (groupId != null) {
+            insertValues.put(GROUP_ID, groupId);
+        }
+
         try {
             db.insert(tableType, null, insertValues);
         } catch (SQLiteConstraintException e) {
             Log.e(TAG, "Error inserting messages");
-        }
-        db.close();
-    }
-
-    private void insertImage(String timeStamp, String userId, byte[] image, String tableType) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues insertValues = new ContentValues();
-        insertValues.put(TIME_STAMP, timeStamp);
-        insertValues.put(USER_ID, userId);
-        insertValues.put(KEY_IMAGE, image);
-        try {
-            db.insert(tableType, null, insertValues);
-        } catch (SQLiteConstraintException e) {
-            Log.e(TAG, "Error inserting Images");
         }
         db.close();
     }
@@ -173,33 +178,52 @@ class ChatMessages extends SQLiteOpenHelper {
         db.close();
     }
 
-    void insertSentMessage(String timeStamp, String userId, String message, byte[] file) {
-        insertMessage(timeStamp, userId, message, file, SENT_MESSAGES_TABLE);
+    void insertGroupName(String GroupId, String GroupUserNames) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues insertValues = new ContentValues();
+        insertValues.put(USER_NAME, GroupUserNames);
+        insertValues.put(USER_ID, GroupId);
+        Log.d(TAG, GroupUserNames);
+        Log.d(TAG, GroupId);
+        try {
+            db.insert(GROUP_CHAT_USER_TABLE, null, insertValues);
+        } catch (SQLiteConstraintException e) {
+            Log.e(TAG, "Error inserting data into GroupTable");
+        }
+        db.close();
     }
 
-    void insertReceivedMessage(String timeStamp, String userId, String message,byte[] file) {
-        insertMessage(timeStamp, userId, message,file ,RECEIVED_MESSAGES_TABLE);
+    void insertSentMessage(String timeStamp, String userId, Object message, int dataType) {
+        insertMessage(timeStamp, userId, message, SENT_MESSAGES_TABLE, dataType, null);
     }
 
-    void insertSentImage(String timeStamp,String userId, byte[] image) {
-        insertImage(timeStamp,userId, image, SENT_IMAGES_TABLE);
+    void insertReceivedMessage(String timeStamp, String userId, Object message, int dataType) {
+        insertMessage(timeStamp, userId, message, RECEIVED_MESSAGES_TABLE, dataType, null);
     }
 
-    void insertReceivedImage(String timeStamp,String userId, byte[] image) {
-        insertImage(timeStamp,userId, image, RECEIVED_IMAGES_TABLE);
+    void insertSentGroupMessage(String timeStamp, String userId, Object message, int dataType,
+                                String groupId) {
+        insertMessage(timeStamp, userId, message, SENT_MESSAGES_TABLE, dataType, groupId);
+        Log.d(TAG, "Inserting sent group message");
     }
 
-    boolean isUserInDb(String macAddress) {
-        String query = "SELECT " + USER_ID + " FROM " + USER_NAMES_TABLE
+    void insertReceivedGroupMessage(String timeStamp, String userId, Object message, int dataType,
+                                    String groupId) {
+        insertMessage(timeStamp, userId, message, RECEIVED_MESSAGES_TABLE, dataType, groupId);
+        Log.d(TAG, "Inserting received group message");
+    }
+
+    boolean isUserInDb(String macAddress, String table) {
+        String query = "SELECT " + USER_ID + " FROM " + table
                 + " WHERE " + USER_ID + " = '" + macAddress + "'";
 
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery(query, null);
 
         if(cursor.moveToFirst()) {
-                if (cursor.getString(0).equals(macAddress)) {
-                    return true;
-                }
+            if (cursor.getString(0).equals(macAddress)) {
+                return true;
+            }
         }
 
         cursor.close();
@@ -207,98 +231,79 @@ class ChatMessages extends SQLiteOpenHelper {
         return false;
     }
 
-    private ArrayList<ChatMessage> retrieveMessages(String userId, String tableType) {
+    private ArrayList<ChatMessage> retrieveMessages(String userId, String tableType,
+                                                    boolean isGroupReceived) {
         ArrayList<ChatMessage> userMessages = new ArrayList<>();
-        String select = "SELECT Time, Message FROM " + tableType +
-                " WHERE " + USER_ID + " = '" + userId + "'";
+        String select = "SELECT Time, Message, Image, Audio FROM " + tableType +
+                " WHERE " + USER_ID + " = '" + userId + "' AND " + GROUP_ID
+                + " IS NULL";
+
+        if (isGroupReceived) {
+            select = "SELECT " + TIME_STAMP + ", " + MESSAGE + ", " + IMAGE
+                    + ", " + AUDIO + ", " + USER_ID + " FROM " + tableType +
+                    " WHERE " + GROUP_ID + " = '" + userId + "'";
+        }
+
+        Log.d(TAG, select);
 
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery(select, null);
-
+        Log.d(TAG, "retrieving messages");
         if(cursor.moveToFirst()) {
             do {
-                String date = cursor.getString(0);
-                String message = cursor.getString(1);
-                userMessages.add(new ChatMessage(date, message));
+                String date = cursor.getString(cursor.getColumnIndex(TIME_STAMP));
+                String message = cursor.getString(cursor.getColumnIndex(MESSAGE));
+                byte[] image = cursor.getBlob(cursor.getColumnIndex(IMAGE));
+                String audio = cursor.getString(cursor.getColumnIndex(AUDIO));
+                String user =  null;
+
+                if(isGroupReceived) {
+                    user = cursor.getString(cursor.getColumnIndex(USER_ID));
+                }
+
+                ChatMessage cm = null;
+                if (image != null) {
+                    Log.d(TAG, "Message is null, adding image");
+                    Bitmap bpImage = BitmapFactory.decodeByteArray(image, 0, image.length);
+                    cm = new ChatMessage(date, bpImage);
+                } else if (message != null){
+                    Log.d(TAG, "Adding Message");
+                    cm = new ChatMessage(date, message);
+                } else {
+                    Log.d(TAG, "Adding audio file");
+                    cm = new ChatMessage(date, new File(audio));
+                }
+
+                if (isGroupReceived) {
+                    cm.user = user;
+                }
+                userMessages.add(cm);
+
             } while (cursor.moveToNext());
         }
-
         cursor.close();
         db.close();
 
         return userMessages;
     }
 
-    private ArrayList<ChatMessage> retrieveImages(String userId, String tableType) {
-        ArrayList<Bitmap> userImages = new ArrayList<Bitmap>();
-        ArrayList<ChatMessage> userMessages = new ArrayList<>();
-        String select = "SELECT Time, image_data FROM " + tableType +
-                " WHERE " + USER_ID + " = '" + userId + "'";
-
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor_i = db.rawQuery(select, null);
-
-        if(cursor_i.moveToFirst()) {
-            do {
-                String date = cursor_i.getString(0);
-                byte[] image = cursor_i.getBlob(1);
-                userMessages.add(new ChatMessage(date, BitmapFactory.decodeByteArray(image, 0, image.length)));
-//                userImages.add(BitmapFactory.decodeByteArray(image, 0, image.length));
-            } while (cursor_i.moveToNext());
-        }
-
-        cursor_i.close();
-        db.close();
-
-        return userMessages;
-    }
-
-    private ArrayList<ChatMessage> retrieveFiles(String userId, String tableType) {
-        ArrayList<Bitmap> userImages = new ArrayList<Bitmap>();
-        ArrayList<ChatMessage> userMessages = new ArrayList<>();
-        String select = "SELECT Time, Audio_data FROM " + tableType +
-                " WHERE " + USER_ID + " = '" + userId + "'";
-
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor_i = db.rawQuery(select, null);
-
-        if(cursor_i.moveToFirst()) {
-            do {
-                String date = cursor_i.getString(0);
-                byte[] file = cursor_i.getBlob(1);
-//                userMessages.add(new ChatMessage(date, file));
-//                userImages.add(BitmapFactory.decodeByteArray(image, 0, image.length));
-            } while (cursor_i.moveToNext());
-        }
-
-        cursor_i.close();
-        db.close();
-
-        return userMessages;
-    }
-
     ArrayList<ChatMessage> retrieveReceivedMessages(String userId) {
-        return retrieveMessages(userId, RECEIVED_MESSAGES_TABLE);
+        Log.d(TAG, "retrieving received messages");
+        return retrieveMessages(userId, RECEIVED_MESSAGES_TABLE, false);
     }
 
     ArrayList<ChatMessage> retrieveSentMessages(String userId) {
-        return retrieveMessages(userId, SENT_MESSAGES_TABLE);
+        Log.d(TAG, "retrieving sent messages");
+        return retrieveMessages(userId, SENT_MESSAGES_TABLE, false);
     }
 
-    ArrayList<ChatMessage> retrieveReceivedImages(String userId) {
-        return retrieveImages(userId, RECEIVED_IMAGES_TABLE);
+    ArrayList<ChatMessage> retrieveSentGroupMessages(String groupId) {
+        return retrieveMessages(groupId, SENT_MESSAGES_TABLE, true);
     }
 
-    ArrayList<ChatMessage> retrieveSentImages(String userId) {
-        return retrieveImages(userId, SENT_IMAGES_TABLE);
-    }
-
-    ArrayList<ChatMessage> retrieveReceivedFiles(String userId) {
-        return retrieveFiles(userId, RECEIVED_MESSAGES_TABLE);
-    }
-
-    ArrayList<ChatMessage> retrieveSentFiles(String userId) {
-        return retrieveFiles(userId, SENT_MESSAGES_TABLE);
+    ArrayList<ChatMessage> retrieveReceivedGroupMessages(String groupId) {
+        Log.d(TAG, "retrieving received group messages");
+        return retrieveMessages(groupId, RECEIVED_MESSAGES_TABLE, true);
     }
 
     // used for testing purposes, remove later.
@@ -306,8 +311,6 @@ class ChatMessages extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DROP TABLE IF EXISTS " + RECEIVED_MESSAGES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + SENT_MESSAGES_TABLE);
-        db.execSQL("DROP TABLE IF EXISTS " + RECEIVED_IMAGES_TABLE);
-        db.execSQL("DROP TABLE IF EXISTS " + SENT_IMAGES_TABLE);
         onCreate(db);
         db.close();
     }
@@ -335,34 +338,10 @@ class ChatMessages extends SQLiteOpenHelper {
         return combined;
     }
 
-    // Sorts and combines messages you have sent and received
-    static List<ChatMessage> combineImages(List<ChatMessage> readImages,
-                                             List<ChatMessage> sentImages) {
-        List<ChatMessage> combined = new ArrayList<>();
-
-        for (ChatMessage image : readImages) {
-            combined.add(image);
-        }
-
-        for (ChatMessage image : sentImages) {
-            combined.add(image);
-        }
-
-        Collections.sort(combined, new Comparator<ChatMessage>() {
-            @Override
-            public int compare(ChatMessage message1, ChatMessage message2) {
-                return message1.timeStamp.compareTo(message2.timeStamp);
-            }
-        });
-
-        return combined;
-    }
-
-
     // Returns user names and mac addresses
-    List<String> getPreviousChatNames() {
+    List<String> getPreviousChatNames(String tableName) {
         List<String> userNames = new ArrayList<>();
-        String select = "SELECT " + USER_ID + ", " + USER_NAME + " FROM " + USER_NAMES_TABLE;
+        String select = "SELECT " + USER_ID + ", " + USER_NAME + " FROM " + tableName;
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery(select, null);
 
@@ -378,5 +357,39 @@ class ChatMessages extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return userNames;
+    }
+
+    static byte[] compressBitmap(Bitmap image, boolean isBeforeSocketSend) {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+        image.compress(Bitmap.CompressFormat.JPEG, 50, bos);
+        String encodedImage = Base64.encodeToString(bos.toByteArray(),
+                Base64.DEFAULT);
+
+        byte[] compressed = isBeforeSocketSend ? encodedImage.getBytes()
+                : Base64.decode(encodedImage, Base64.DEFAULT);
+
+        return compressed;
+    }
+
+    static List<String> orderGroupChat(List<String> groupChat) {
+        ArrayList<String> correctGroupings = new ArrayList<>();
+        for (String group : groupChat) {
+            String[] usersSplitUp = group.split("[\\r?\\n]+");
+            String matchUserToAddress = "";
+
+            // First half of the list maps to user names and the second
+            // half maps to mac addresses
+            for(int i = 0, j = usersSplitUp.length/2; j < usersSplitUp.length; i++, j++ ) {
+                if (j == usersSplitUp.length - 1) {
+                    matchUserToAddress += usersSplitUp[i] + "\n" + usersSplitUp[j];
+                } else {
+                    matchUserToAddress += usersSplitUp[i] + "\n" + usersSplitUp[j] + "\n";
+                }
+                Log.d(TAG, matchUserToAddress);
+            }
+            correctGroupings.add(matchUserToAddress);
+        }
+        return correctGroupings;
     }
 }
